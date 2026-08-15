@@ -1,0 +1,126 @@
+{
+  "APP": {
+    "TITLE": "RUTS",
+    "SUBTITLE": "نظام تتبع الموارد والاستخدامات"
+  },
+  "COMMON": {
+    "SEARCH": "بحث",
+    "SAVE": "حفظ",
+    "CANCEL": "إلغاء",
+    "DELETE": "حذف",
+    "EDIT": "تعديل",
+    "ADD": "إضافة",
+    "ACTIONS": "العمليات",
+    "ACTIVE": "نشط",
+    "INACTIVE": "غير نشط",
+    "YES": "نعم",
+    "NO": "لا",
+    "LOADING": "جاري التحميل...",
+    "NO_DATA": "لا توجد سجلات",
+    "CONFIRM_DELETE": "هل أنت متأكد من حذف هذا السجل؟",
+    "RECORDS_PER_PAGE": "سجلات لكل صفحة",
+    "OF": "من",
+    "REQUIRED": "مطلوب",
+    "BACK": "رجوع",
+    "CLOSE": "إغلاق",
+    "SUCCESS": "تمت العملية بنجاح",
+    "ERROR": "حدث خطأ",
+    "CODE": "الرمز"
+  },
+  "AUTH": {
+    "LOGIN": "تسجيل الدخول",
+    "LOGOUT": "تسجيل الخروج",
+    "EMPLOYEE_NUMBER": "رقم الموظف",
+    "PASSWORD": "كلمة المرور",
+    "RESET_PASSWORD": "إعادة تعيين كلمة المرور",
+    "INVALID_CREDENTIALS": "رقم الموظف أو كلمة المرور غير صحيحة"
+  },
+  "NAV": {
+    "DASHBOARD": "لوحة التحكم",
+    "USERS": "المستخدمون",
+    "CORRESPONDENTS": "المراسلون",
+    "ACCOUNTS": "الحسابات",
+    "CUSTOMER_ORDERS": "طلبات العملاء",
+    "BANKS": "البنوك المراسلة",
+    "COMPANIES": "الشركات",
+    "RESOURCES": "الموارد",
+    "TRANSACTIONS": "المعاملات",
+    "OBLIGATIONS": "الالتزامات",
+    "GOLD_AND_CASH": "الذهب والنقد",
+    "CURRENCIES": "العملات",
+    "REPLENISHMENTS": "التمويلات",
+    "DEALING": "التداول",
+    "REPORTS": "التقارير",
+    "BALANCES": "الأرصدة",
+    "FOREIGN_RESERVE": "الاحتياطي الأجنبي",
+    "COUNTRIES": "الدول",
+    "BENEFICIARIES": "المستفيدون"
+  },
+  "BANKS": {
+    "TITLE": "البنوك المراسلة",
+    "ADD": "+ إضافة بنك",
+    "NAME": "اسم البنك",
+    "NAME_EN": "اسم البنك (إنجليزي)",
+    "NAME_AR": "اسم البنك (عربي)",
+    "CODE": "رمز البنك",
+    "SHORT_NAME": "الاسم المختصر"
+  },
+  "COMPANIES": {
+    "TITLE": "الشركات",
+    "ADD": "+ إضافة شركة",
+    "NAME": "اسم الشركة",
+    "NAME_EN": "اسم الشركة (إنجليزي)",
+    "NAME_AR": "اسم الشركة (عربي)",
+    "CODE": "رمز الشركة",
+    "SHORT_NAME": "الاسم المختصر",
+    "NOTES": "ملاحظات"
+  },
+  "COUNTRIES": {
+    "TITLE": "الدول",
+    "ADD": "+ إضافة دولة",
+    "NAME": "اسم الدولة",
+    "NAME_EN": "اسم الدولة (إنجليزي)",
+    "NAME_AR": "اسم الدولة (عربي)",
+    "CODE": "رمز الدولة",
+    "ISO": "رمز ISO"
+  },
+  "CORRESPONDENTS": {
+    "ADD": "+ إضافة مراسل"
+  },
+  "ACCOUNTS": {
+    "ADD": "+ إضافة حساب",
+    "NUMBER": "رقم الحساب",
+    "BALANCE": "الرصيد الحالي",
+    "OPENING_BALANCE": "الرصيد الافتتاحي"
+  },
+  "BENEFICIARIES": {
+    "ADD": "+ إضافة مستفيد"
+  },
+  "CURRENCIES": {
+    "ADD": "+ إضافة عملة",
+    "SYMBOL": "الرمز",
+    "DECIMALS": "الخانات العشرية"
+  },
+  "RESOURCES": {
+    "ADD": "+ إضافة نوع مورد"
+  },
+  "TRANSFERS": {
+    "TITLE": "المعاملات",
+    "ADD": "+ معاملة جديدة",
+    "REFERENCE": "رقم المرجع",
+    "AMOUNT": "المبلغ",
+    "DATE": "تاريخ التحويل",
+    "PURPOSE": "الغرض",
+    "STATUS": "الحالة",
+    "CONFIRM": "تأكيد",
+    "REJECT": "رفض"
+  },
+  "DASHBOARD": {
+    "TITLE": "لوحة التحكم",
+    "WELCOME": "مرحباً بعودتك",
+    "TOTAL_BALANCE": "إجمالي الرصيد",
+    "ACTIVE_OBLIGATIONS": "الالتزامات النشطة",
+    "PENDING_TRANSFERS": "التحويلات المعلقة",
+    "RECENT_ACTIVITY": "النشاط الأخير"
+  }
+}

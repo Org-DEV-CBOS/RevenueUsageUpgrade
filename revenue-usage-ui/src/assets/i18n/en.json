@@ -1,0 +1,112 @@
+{
+  "APP": {
+    "TITLE": "RUTS",
+    "SUBTITLE": "Resources And Uses Tracking System"
+  },
+  "COMMON": {
+    "SEARCH": "Search",
+    "SAVE": "Save",
+    "CANCEL": "Cancel",
+    "DELETE": "Delete",
+    "EDIT": "Edit",
+    "ADD": "Add",
+    "ACTIONS": "Actions",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "YES": "Yes",
+    "NO": "No",
+    "LOADING": "Loading...",
+    "NO_DATA": "No records found",
+    "CONFIRM_DELETE": "Are you sure you want to delete this record?",
+    "RECORDS_PER_PAGE": "Records per page",
+    "OF": "of",
+    "REQUIRED": "Required",
+    "BACK": "Back",
+    "CLOSE": "Close",
+    "SUCCESS": "Operation completed successfully",
+    "ERROR": "An error occurred",
+    "CODE": "Code"
+  },
+  "NAV": {
+    "DASHBOARD": "Dashboard",
+    "CORRESPONDENTS": "Correspondents",
+    "ACCOUNTS": "Accounts",
+    "BANKS": "Remitting Banks",
+    "COMPANIES": "Companies",
+    "RESOURCES": "Resources",
+    "TRANSACTIONS": "Transactions",
+    "OBLIGATIONS": "Obligations",
+    "GOLD_AND_CASH": "Gold And Cash",
+    "CURRENCIES": "Currencies",
+    "REPLENISHMENTS": "Replenishments",
+    "DEALING": "Dealing",
+    "REPORTS": "Reports",
+    "BALANCES": "Balances",
+    "FOREIGN_RESERVE": "Foreign Reserve",
+    "COUNTRIES": "Countries",
+    "BENEFICIARIES": "Beneficiaries"
+  },
+  "BANKS": {
+    "TITLE": "Remitting Banks",
+    "ADD": "+ Add Bank",
+    "NAME": "Bank Name",
+    "NAME_EN": "Bank Name (English)",
+    "NAME_AR": "Bank Name (Arabic)",
+    "CODE": "Bank Code",
+    "SHORT_NAME": "Short Name"
+  },
+  "COMPANIES": {
+    "TITLE": "Companies",
+    "ADD": "+ Add Company",
+    "NAME": "Company Name",
+    "NAME_EN": "Company Name (English)",
+    "NAME_AR": "Company Name (Arabic)",
+    "CODE": "Company Code",
+    "SHORT_NAME": "Short Name",
+    "NOTES": "Notes"
+  },
+  "COUNTRIES": {
+    "TITLE": "Countries",
+    "ADD": "+ Add Country",
+    "NAME": "Country Name",
+    "NAME_EN": "Country Name (English)",
+    "NAME_AR": "Country Name (Arabic)",
+    "CODE": "Country Code",
+    "ISO": "ISO Code"
+  },
+  "CORRESPONDENTS": {
+    "ADD": "+ Add Correspondent"
+  },
+  "ACCOUNTS": {
+    "ADD": "+ Add Account",
+    "NUMBER": "Account Number",
+    "BALANCE": "Current Balance",
+    "OPENING_BALANCE": "Opening Balance"
+  },
+  "BENEFICIARIES": {
+    "ADD": "+ Add Beneficiary"
+  },
+  "CURRENCIES": {
+    "ADD": "+ Add Currency",
+    "SYMBOL": "Symbol",
+    "DECIMALS": "Decimal Places"
+  },
+  "RESOURCES": {
+    "ADD": "+ Add Resource Type"
+  },
+  "TRANSFERS": {
+    "TITLE": "Transactions",
+    "REFERENCE": "Reference No",
+    "AMOUNT": "Amount",
+    "DATE": "Transfer Date",
+    "PURPOSE": "Purpose",
+    "STATUS": "Status"
+  },
+  "DASHBOARD": {
+    "TITLE": "Dashboard",
+    "WELCOME": "Welcome back",
+    "TOTAL_BALANCE": "Total Balance",
+    "ACTIVE_OBLIGATIONS": "Active Obligations",
+    "PENDING_TRANSFERS": "Pending Transfers"
+  }
+}
