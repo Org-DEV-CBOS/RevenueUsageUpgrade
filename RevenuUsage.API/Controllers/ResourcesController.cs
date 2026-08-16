@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Resources.Commands.AddResourceToCorrespondentAccount;
@@ -8,6 +9,7 @@ using RevenuUsage.Application.Features.MasterData;
 
 namespace RevenuUsage.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ResourcesController : ControllerBase

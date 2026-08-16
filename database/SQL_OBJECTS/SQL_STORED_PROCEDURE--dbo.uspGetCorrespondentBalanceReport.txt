@@ -1,0 +1,21 @@
+
+CREATE PROCEDURE dbo.uspGetCorrespondentBalanceReport
+    @SearchValue nvarchar(200) = NULL
+AS
+SELECT
+    c.CorrespondentNameEn,
+    cur.CurrencyCode,
+    a.AccountNumber,
+    a.CurrentBalance
+FROM dbo.CorrespondentAccounts a
+INNER JOIN dbo.Correspondents c ON c.CorrespondentId = a.CorrespondentId
+INNER JOIN dbo.Currencies cur ON cur.CurrencyId = a.CurrencyId
+WHERE a.IsDeleted = 0
+  AND c.IsDeleted = 0
+  AND (
+        @SearchValue IS NULL
+        OR c.CorrespondentNameEn LIKE '%' + @SearchValue + '%'
+        OR cur.CurrencyCode LIKE '%' + @SearchValue + '%'
+        OR a.AccountNumber LIKE '%' + @SearchValue + '%'
+      )
+ORDER BY c.CorrespondentNameEn, cur.CurrencyCode, a.AccountNumber;

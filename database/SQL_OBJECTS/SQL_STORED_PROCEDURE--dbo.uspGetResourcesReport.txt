@@ -1,0 +1,15 @@
+
+CREATE PROCEDURE dbo.uspGetResourcesReport
+    @StartDate date = NULL,
+    @EndDate date = NULL
+AS
+SELECT
+    rt.ResourceTypeNameEn AS ResourceTypeName,
+    SUM(r.Amount) AS TotalAmount
+FROM dbo.Resources r
+INNER JOIN dbo.ResourceTypes rt ON rt.ResourceTypeId = r.ResourceTypeId
+WHERE r.DeletedTime IS NULL
+  AND (@StartDate IS NULL OR r.ResourceDate >= @StartDate)
+  AND (@EndDate IS NULL OR r.ResourceDate < DATEADD(day, 1, @EndDate))
+GROUP BY rt.ResourceTypeNameEn
+ORDER BY rt.ResourceTypeNameEn;

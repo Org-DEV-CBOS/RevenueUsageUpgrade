@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Currencies.Commands.AddExchangeRate;
@@ -11,6 +12,7 @@ using RevenuUsage.Application.Features.MasterData;
 
 namespace RevenuUsage.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class CurrenciesController : ControllerBase

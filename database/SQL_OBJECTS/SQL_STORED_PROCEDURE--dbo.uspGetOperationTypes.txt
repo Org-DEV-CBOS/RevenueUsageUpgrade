@@ -1,0 +1,28 @@
+
+CREATE PROCEDURE dbo.uspGetOperationTypes
+    @ActiveOnly bit = 1
+AS
+BEGIN
+    DECLARE @hasNameAr bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'OperationTypeNameAr') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsActive bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'IsActive') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsDeleted bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'IsDeleted') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasTransferDeleted bit = CASE WHEN COL_LENGTH('dbo.Transfers', 'DeletedTime') IS NULL THEN 0 ELSE 1 END;
+
+    DECLARE @sql nvarchar(max) = N'SELECT
+        OperationTypeId,
+        OperationTypeCode,
+        OperationTypeNameEn,
+        ' + CASE WHEN @hasNameAr = 1 THEN N'OperationTypeNameAr' ELSE N'CAST(NULL AS nvarchar(100)) AS OperationTypeNameAr' END + N',
+        ' + CASE WHEN @hasIsActive = 1 THEN N'IsActive' ELSE N'CAST(1 AS bit) AS IsActive' END + N',
+        CAST(CASE WHEN EXISTS (
+            SELECT 1 FROM dbo.Transfers t
+            WHERE t.OperationTypeId = ot.OperationTypeId ' + CASE WHEN @hasTransferDeleted = 1 THEN N'AND t.DeletedTime IS NULL' ELSE N'' END + N'
+        ) THEN 1 ELSE 0 END AS bit) AS HasMovements
+    FROM dbo.OperationTypes ot
+    WHERE 1=1 '
+    + CASE WHEN @hasIsDeleted = 1 THEN N' AND IsDeleted = 0' ELSE N'' END
+    + CASE WHEN @hasIsActive = 1 THEN N' AND (@ActiveOnly = 0 OR IsActive = 1)' ELSE N'' END
+    + N' ORDER BY OperationTypeNameEn';
+
+    EXEC sp_executesql @sql, N'@ActiveOnly bit', @ActiveOnly;
+END;

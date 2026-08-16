@@ -1,0 +1,25 @@
+
+CREATE PROCEDURE dbo.uspDeleteUsageType
+    @UsageTypeId uniqueidentifier,
+    @DeletedBy nvarchar(100) = NULL
+AS
+BEGIN
+    DECLARE @hasTransferDeleted bit = CASE WHEN COL_LENGTH('dbo.Transfers', 'DeletedTime') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsDeleted bit = CASE WHEN COL_LENGTH('dbo.UsageTypes', 'IsDeleted') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsActive bit = CASE WHEN COL_LENGTH('dbo.UsageTypes', 'IsActive') IS NULL THEN 0 ELSE 1 END;
+
+    DECLARE @checkSql nvarchar(max) = N'IF EXISTS (SELECT 1 FROM dbo.Transfers WHERE UsageTypeId=@UsageTypeId '
+        + CASE WHEN @hasTransferDeleted = 1 THEN N'AND DeletedTime IS NULL' ELSE N'' END + N')
+        THROW 51005, ''Usage type has movements.'', 1;';
+    EXEC sp_executesql @checkSql, N'@UsageTypeId uniqueidentifier', @UsageTypeId;
+
+    IF @hasIsDeleted = 1
+    BEGIN
+        DECLARE @set nvarchar(max) = N'IsDeleted=1';
+        IF @hasIsActive = 1 SET @set += N', IsActive=0';
+        DECLARE @sql nvarchar(max) = N'UPDATE dbo.UsageTypes SET ' + @set + N' WHERE UsageTypeId=@UsageTypeId';
+        EXEC sp_executesql @sql, N'@UsageTypeId uniqueidentifier', @UsageTypeId;
+    END
+    ELSE
+        DELETE FROM dbo.UsageTypes WHERE UsageTypeId=@UsageTypeId;
+END;

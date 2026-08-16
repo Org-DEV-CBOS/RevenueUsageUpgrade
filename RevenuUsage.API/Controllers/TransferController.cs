@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Transfers.Commands.ConfirmTransfer;
@@ -10,6 +11,7 @@ using RevenuUsage.Application.Features.Transfers.Queries.GetTransfers;
 
 namespace RevenuUsage.API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class TransferController : ControllerBase

@@ -1,0 +1,46 @@
+
+CREATE PROCEDURE dbo.uspCreateObligation
+    @ObligationDate date,
+    @ClientName nvarchar(200) = NULL,
+    @CurrencyId uniqueidentifier,
+    @TotalAmount decimal(19,4),
+    @DueDate date = NULL,
+    @ReferenceNo nvarchar(100) = NULL,
+    @Notes nvarchar(500) = NULL,
+    @ClientType nvarchar(20) = 'Other',
+    @BankId uniqueidentifier = NULL,
+    @CompanyId uniqueidentifier = NULL,
+    @CreatedBy nvarchar(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SET @ClientType = ISNULL(NULLIF(LTRIM(RTRIM(@ClientType)), ''), 'Other');
+    IF @ClientType NOT IN ('Bank', 'Company', 'Other')
+        THROW 51010, 'ClientType must be Bank, Company or Other.', 1;
+
+    IF @ClientType = 'Bank' AND @BankId IS NULL
+        THROW 51011, 'BankId is required when ClientType is Bank.', 1;
+    IF @ClientType = 'Company' AND @CompanyId IS NULL
+        THROW 51012, 'CompanyId is required when ClientType is Company.', 1;
+
+    IF @ClientType <> 'Bank' SET @BankId = NULL;
+    IF @ClientType <> 'Company' SET @CompanyId = NULL;
+
+    IF @BankId IS NOT NULL
+        SELECT @ClientName = ISNULL(NULLIF(@ClientName, ''), b.bankNameEn)
+        FROM dbo.banks b WHERE b.bankId = @BankId;
+
+    IF @CompanyId IS NOT NULL
+        SELECT @ClientName = ISNULL(NULLIF(@ClientName, ''), cm.companyNameEn)
+        FROM dbo.companies cm WHERE cm.companyId = @CompanyId;
+
+    IF NULLIF(LTRIM(RTRIM(ISNULL(@ClientName, ''))), '') IS NULL
+        THROW 51013, 'ClientName is required.', 1;
+
+    INSERT dbo.Obligations
+        (ObligationDate, ClientName, ClientType, BankId, CompanyId, CurrencyId, TotalAmount, DueDate, ReferenceNo, Notes, CreatedBy)
+    OUTPUT inserted.ObligationId
+    VALUES
+        (@ObligationDate, @ClientName, @ClientType, @BankId, @CompanyId, @CurrencyId, @TotalAmount, @DueDate, @ReferenceNo, @Notes, @CreatedBy);
+END;

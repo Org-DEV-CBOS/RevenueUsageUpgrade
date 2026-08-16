@@ -1,0 +1,21 @@
+
+CREATE PROCEDURE dbo.uspCreateOperationType
+    @OperationTypeCode nvarchar(50),
+    @OperationTypeNameEn nvarchar(100),
+    @OperationTypeNameAr nvarchar(100) = NULL,
+    @CreatedBy nvarchar(100) = NULL
+AS
+BEGIN
+    DECLARE @hasNameAr bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'OperationTypeNameAr') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasCreatedBy bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'CreatedBy') IS NULL THEN 0 ELSE 1 END;
+
+    DECLARE @cols nvarchar(max) = N'OperationTypeCode, OperationTypeNameEn';
+    DECLARE @vals nvarchar(max) = N'@OperationTypeCode, @OperationTypeNameEn';
+    IF @hasNameAr = 1 BEGIN SET @cols += N', OperationTypeNameAr'; SET @vals += N', @OperationTypeNameAr'; END;
+    IF @hasCreatedBy = 1 BEGIN SET @cols += N', CreatedBy'; SET @vals += N', @CreatedBy'; END;
+
+    DECLARE @sql nvarchar(max) = N'INSERT dbo.OperationTypes (' + @cols + N') OUTPUT inserted.OperationTypeId VALUES (' + @vals + N');';
+    EXEC sp_executesql @sql,
+        N'@OperationTypeCode nvarchar(50), @OperationTypeNameEn nvarchar(100), @OperationTypeNameAr nvarchar(100), @CreatedBy nvarchar(100)',
+        @OperationTypeCode, @OperationTypeNameEn, @OperationTypeNameAr, @CreatedBy;
+END;

@@ -31,3 +31,23 @@ public sealed class ResourceType
     public bool IsActive { get; set; }
     public bool HasMovements { get; set; }
 }
+
+public sealed class OperationType
+{
+    public Guid OperationTypeId { get; set; }
+    public string OperationTypeCode { get; set; } = string.Empty;
+    public string OperationTypeNameEn { get; set; } = string.Empty;
+    public string? OperationTypeNameAr { get; set; }
+    public bool IsActive { get; set; }
+    public bool HasMovements { get; set; }
+}
+
+public sealed class UsageType
+{
+    public Guid UsageTypeId { get; set; }
+    public string UsageTypeCode { get; set; } = string.Empty;
+    public string UsageTypeNameEn { get; set; } = string.Empty;
+    public string? UsageTypeNameAr { get; set; }
+    public bool IsActive { get; set; }
+    public bool HasMovements { get; set; }
+}

@@ -1,0 +1,18 @@
+
+CREATE PROCEDURE dbo.uspGetDebitMovements
+    @StartDate date,
+    @EndDate date,
+    @SearchValue nvarchar(200) = NULL
+AS
+SELECT
+    b.BeneficiaryNameEn AS GroupName,
+    SUM(t.Amount) AS TotalAmount
+FROM dbo.Transfers t
+INNER JOIN dbo.Beneficiaries b ON b.BeneficiaryId = t.BeneficiaryId
+WHERE t.DeletedTime IS NULL
+  AND t.TransferStatus = 'Confirmed'
+  AND t.TransferDate >= @StartDate
+  AND t.TransferDate < DATEADD(day, 1, @EndDate)
+  AND (@SearchValue IS NULL OR b.BeneficiaryNameEn LIKE '%' + @SearchValue + '%')
+GROUP BY b.BeneficiaryNameEn
+ORDER BY b.BeneficiaryNameEn;

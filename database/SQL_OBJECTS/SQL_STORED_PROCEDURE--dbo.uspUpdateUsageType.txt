@@ -1,0 +1,25 @@
+
+CREATE PROCEDURE dbo.uspUpdateUsageType
+    @UsageTypeId uniqueidentifier,
+    @UsageTypeCode nvarchar(50),
+    @UsageTypeNameEn nvarchar(100),
+    @UsageTypeNameAr nvarchar(100) = NULL,
+    @IsActive bit,
+    @ModifiedBy nvarchar(100) = NULL
+AS
+BEGIN
+    DECLARE @hasNameAr bit = CASE WHEN COL_LENGTH('dbo.UsageTypes', 'UsageTypeNameAr') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsActive bit = CASE WHEN COL_LENGTH('dbo.UsageTypes', 'IsActive') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsDeleted bit = CASE WHEN COL_LENGTH('dbo.UsageTypes', 'IsDeleted') IS NULL THEN 0 ELSE 1 END;
+
+    DECLARE @set nvarchar(max) = N'UsageTypeCode=@UsageTypeCode, UsageTypeNameEn=@UsageTypeNameEn';
+    IF @hasNameAr = 1 SET @set += N', UsageTypeNameAr=@UsageTypeNameAr';
+    IF @hasIsActive = 1 SET @set += N', IsActive=@IsActive';
+
+    DECLARE @sql nvarchar(max) = N'UPDATE dbo.UsageTypes SET ' + @set + N' WHERE UsageTypeId=@UsageTypeId'
+        + CASE WHEN @hasIsDeleted = 1 THEN N' AND IsDeleted=0' ELSE N'' END;
+
+    EXEC sp_executesql @sql,
+        N'@UsageTypeId uniqueidentifier,@UsageTypeCode nvarchar(50),@UsageTypeNameEn nvarchar(100),@UsageTypeNameAr nvarchar(100),@IsActive bit',
+        @UsageTypeId,@UsageTypeCode,@UsageTypeNameEn,@UsageTypeNameAr,@IsActive;
+END;

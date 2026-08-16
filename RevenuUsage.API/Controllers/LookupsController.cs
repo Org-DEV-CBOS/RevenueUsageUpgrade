@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Lookups.Commands.CreateBank;
@@ -16,9 +17,11 @@ using RevenuUsage.Application.Features.Lookups.Queries.GetAllCountries;
 using RevenuUsage.Application.Features.Lookups.Queries.GetBankById;
 using RevenuUsage.Application.Features.Lookups.Queries.GetCompanyById;
 using RevenuUsage.Application.Features.Lookups.Queries.GetCountryById;
+using RevenuUsage.Application.Features.MasterData;
 
 namespace RevenuUsage.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class LookupsController : ControllerBase
@@ -331,6 +334,58 @@ public class LookupsController : ControllerBase
         await _mediator.Send(command, cancellationToken);
 
         return Ok(new { message = "Country deleted successfully" });
+    }
+
+    #endregion
+
+    #region Operation Types
+
+    [HttpGet("operation-types")]
+    public async Task<ActionResult<IReadOnlyList<OperationTypeDto>>> GetOperationTypes([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
+        Ok(await _mediator.Send(new GetOperationTypesQuery(activeOnly), ct));
+
+    [HttpPost("operation-types")]
+    public async Task<ActionResult> CreateOperationType([FromBody] SaveOperationTypeDto model, CancellationToken ct) =>
+        Ok(new { operationTypeId = await _mediator.Send(new SaveOperationTypeCommand(model with { OperationTypeId = null }), ct) });
+
+    [HttpPut("operation-types/{id:guid}")]
+    public async Task<ActionResult> UpdateOperationType(Guid id, [FromBody] SaveOperationTypeDto model, CancellationToken ct)
+    {
+        await _mediator.Send(new SaveOperationTypeCommand(model with { OperationTypeId = id }), ct);
+        return NoContent();
+    }
+
+    [HttpDelete("operation-types/{id:guid}")]
+    public async Task<ActionResult> DeleteOperationType(Guid id, [FromBody] DeleteMasterDataDto model, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteOperationTypeCommand(id, model.DeletedBy), ct);
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Usage Types
+
+    [HttpGet("usage-types")]
+    public async Task<ActionResult<IReadOnlyList<UsageTypeDto>>> GetUsageTypes([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
+        Ok(await _mediator.Send(new GetUsageTypesQuery(activeOnly), ct));
+
+    [HttpPost("usage-types")]
+    public async Task<ActionResult> CreateUsageType([FromBody] SaveUsageTypeDto model, CancellationToken ct) =>
+        Ok(new { usageTypeId = await _mediator.Send(new SaveUsageTypeCommand(model with { UsageTypeId = null }), ct) });
+
+    [HttpPut("usage-types/{id:guid}")]
+    public async Task<ActionResult> UpdateUsageType(Guid id, [FromBody] SaveUsageTypeDto model, CancellationToken ct)
+    {
+        await _mediator.Send(new SaveUsageTypeCommand(model with { UsageTypeId = id }), ct);
+        return NoContent();
+    }
+
+    [HttpDelete("usage-types/{id:guid}")]
+    public async Task<ActionResult> DeleteUsageType(Guid id, [FromBody] DeleteMasterDataDto model, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteUsageTypeCommand(id, model.DeletedBy), ct);
+        return NoContent();
     }
 
     #endregion

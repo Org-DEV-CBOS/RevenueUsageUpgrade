@@ -6,3 +6,7 @@ public sealed record CurrencyDto(Guid CurrencyId, string CurrencyCode, string Cu
 public sealed record SaveCurrencyDto(Guid? CurrencyId, string CurrencyCode, string CurrencyNameEn, string? CurrencyNameAr, string? Symbol, int DecimalPlaces = 2, bool IsActive = true, string? Actor = null);
 public sealed record ResourceTypeDto(Guid ResourceTypeId, string ResourceTypeCode, string ResourceTypeNameEn, string? ResourceTypeNameAr, bool IsActive, bool HasMovements);
 public sealed record SaveResourceTypeDto(Guid? ResourceTypeId, string ResourceTypeCode, string ResourceTypeNameEn, string? ResourceTypeNameAr, bool IsActive = true, string? Actor = null);
+public sealed record OperationTypeDto(Guid OperationTypeId, string OperationTypeCode, string OperationTypeNameEn, string? OperationTypeNameAr, bool IsActive, bool HasMovements);
+public sealed record SaveOperationTypeDto(Guid? OperationTypeId, string OperationTypeCode, string OperationTypeNameEn, string? OperationTypeNameAr, bool IsActive = true, string? Actor = null);
+public sealed record UsageTypeDto(Guid UsageTypeId, string UsageTypeCode, string UsageTypeNameEn, string? UsageTypeNameAr, bool IsActive, bool HasMovements);
+public sealed record SaveUsageTypeDto(Guid? UsageTypeId, string UsageTypeCode, string UsageTypeNameEn, string? UsageTypeNameAr, bool IsActive = true, string? Actor = null);

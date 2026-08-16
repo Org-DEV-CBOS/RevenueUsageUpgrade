@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Obligations.Commands.AddObligationPayment;
@@ -9,6 +10,7 @@ using RevenuUsage.Domain.Entities;
 
 namespace RevenuUsage.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ObligationsController : ControllerBase
@@ -19,7 +21,7 @@ public class ObligationsController : ControllerBase
     {
         _mediator = mediator;
     }
-    [HttpGet] public async Task<ActionResult<IReadOnlyList<Obligation>>> GetAll([FromQuery]bool activeOnly=true,CancellationToken ct=default)=>Ok(await _mediator.Send(new GetObligationsQuery(activeOnly),ct));
+    [HttpGet] public async Task<ActionResult<IReadOnlyList<Obligation>>> GetAll([FromQuery]bool activeOnly=true,[FromQuery]string? clientType=null,CancellationToken ct=default)=>Ok(await _mediator.Send(new GetObligationsQuery(activeOnly,clientType),ct));
     [HttpPost] public async Task<ActionResult> Create(CreateObligationCommand command,CancellationToken ct)=>Ok(new{obligationId=await _mediator.Send(command,ct)});
     [HttpDelete("{id:guid}")] public async Task<ActionResult> Delete(Guid id,[FromBody]DeleteMasterDataDto dto,CancellationToken ct){await _mediator.Send(new DeleteObligationCommand(id,dto.DeletedBy??string.Empty),ct);return NoContent();}
 

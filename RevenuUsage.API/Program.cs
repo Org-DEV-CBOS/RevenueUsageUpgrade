@@ -1,15 +1,66 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using RevenuUsage.Application;
+using RevenuUsage.Application.Common.Interfaces;
 using RevenuUsage.Application.Interfaces;
 using RevenuUsage.Domain.Interfaces;
 using RevenuUsage.Infrastructure.Persistence;
 using RevenuUsage.Infrastructure.Repositories;
 using RevenuUsage.Infrastructure.Services;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+QuestPDF.Settings.License = LicenseType.Community;
+
+var jwtConfig = builder.Configuration.GetSection("Jwt");
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = jwtConfig["Authority"];
+        options.Audience = "ruts.api";
+        options.RequireHttpsMetadata = true;
+        options.TokenValidationParameters = new()
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtConfig["Issuer"],
+            ValidateAudience = true,
+            ValidAudiences = jwtConfig.GetSection("Audiences").Get<string[]>(),
+            ValidateLifetime = true,
+            RoleClaimType = "role"
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "RUTS API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new()
+    {
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        Description = "Enter JWT token"
+    });
+    c.AddSecurityRequirement(new()
+    {
+        {
+            new() { Reference = new() { Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        }
+    });
+});
 builder.Services.AddControllers();
 
 builder.Services.AddCors(options =>
@@ -39,6 +90,7 @@ builder.Services.AddScoped<ICoverageRepository, CoverageRepository>();
 builder.Services.AddScoped<IDealRepository, DealRepository>();
 builder.Services.AddScoped<IReserveRepository, ReserveRepository>();
 builder.Services.AddScoped<IReportingRepository, ReportingRepository>();
+builder.Services.AddScoped<ITransferMetadataRepository, TransferMetadataRepository>();
 
 var app = builder.Build();
 
@@ -77,6 +129,8 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAngularDev");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 app.Run();

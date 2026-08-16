@@ -1,0 +1,17 @@
+
+CREATE PROCEDURE dbo.uspGetCreditMovements
+    @StartDate date,
+    @EndDate date,
+    @SearchValue nvarchar(200) = NULL
+AS
+SELECT
+    rt.ResourceTypeNameEn AS GroupName,
+    SUM(r.Amount) AS TotalAmount
+FROM dbo.Resources r
+INNER JOIN dbo.ResourceTypes rt ON rt.ResourceTypeId = r.ResourceTypeId
+WHERE r.DeletedTime IS NULL
+  AND r.ResourceDate >= @StartDate
+  AND r.ResourceDate < DATEADD(day, 1, @EndDate)
+  AND (@SearchValue IS NULL OR rt.ResourceTypeNameEn LIKE '%' + @SearchValue + '%')
+GROUP BY rt.ResourceTypeNameEn
+ORDER BY rt.ResourceTypeNameEn;

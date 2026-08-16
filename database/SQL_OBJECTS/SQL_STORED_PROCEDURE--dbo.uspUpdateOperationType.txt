@@ -1,0 +1,25 @@
+
+CREATE PROCEDURE dbo.uspUpdateOperationType
+    @OperationTypeId uniqueidentifier,
+    @OperationTypeCode nvarchar(50),
+    @OperationTypeNameEn nvarchar(100),
+    @OperationTypeNameAr nvarchar(100) = NULL,
+    @IsActive bit,
+    @ModifiedBy nvarchar(100) = NULL
+AS
+BEGIN
+    DECLARE @hasNameAr bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'OperationTypeNameAr') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsActive bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'IsActive') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsDeleted bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'IsDeleted') IS NULL THEN 0 ELSE 1 END;
+
+    DECLARE @set nvarchar(max) = N'OperationTypeCode=@OperationTypeCode, OperationTypeNameEn=@OperationTypeNameEn';
+    IF @hasNameAr = 1 SET @set += N', OperationTypeNameAr=@OperationTypeNameAr';
+    IF @hasIsActive = 1 SET @set += N', IsActive=@IsActive';
+
+    DECLARE @sql nvarchar(max) = N'UPDATE dbo.OperationTypes SET ' + @set + N' WHERE OperationTypeId=@OperationTypeId'
+        + CASE WHEN @hasIsDeleted = 1 THEN N' AND IsDeleted=0' ELSE N'' END;
+
+    EXEC sp_executesql @sql,
+        N'@OperationTypeId uniqueidentifier,@OperationTypeCode nvarchar(50),@OperationTypeNameEn nvarchar(100),@OperationTypeNameAr nvarchar(100),@IsActive bit',
+        @OperationTypeId,@OperationTypeCode,@OperationTypeNameEn,@OperationTypeNameAr,@IsActive;
+END;

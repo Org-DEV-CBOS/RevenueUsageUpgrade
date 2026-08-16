@@ -15,8 +15,8 @@ public class ObligationRepository : IObligationRepository
     {
         _connection = new SqlConnection(configuration.GetConnectionString("DB_Connection"));
     }
-    public async Task<IEnumerable<Obligation>> GetObligationsAsync(bool activeOnly,CancellationToken cancellationToken=default)=>await _connection.QueryAsync<Obligation>("dbo.uspGetObligations",new{ActiveOnly=activeOnly},commandType:CommandType.StoredProcedure);
-    public async Task<Guid> CreateObligationAsync(Obligation x,string createdBy,CancellationToken cancellationToken=default)=>await _connection.QuerySingleAsync<Guid>("dbo.uspCreateObligation",new{x.ObligationDate,x.ClientName,x.CurrencyId,x.TotalAmount,x.DueDate,x.ReferenceNo,x.Notes,CreatedBy=createdBy},commandType:CommandType.StoredProcedure);
+    public async Task<IEnumerable<Obligation>> GetObligationsAsync(bool activeOnly,string? clientType=null,CancellationToken cancellationToken=default)=>await _connection.QueryAsync<Obligation>("dbo.uspGetObligations",new{ActiveOnly=activeOnly,ClientType=clientType},commandType:CommandType.StoredProcedure);
+    public async Task<Guid> CreateObligationAsync(Obligation x,string createdBy,CancellationToken cancellationToken=default)=>await _connection.QuerySingleAsync<Guid>("dbo.uspCreateObligation",new{x.ObligationDate,x.ClientName,x.ClientType,x.BankId,x.CompanyId,x.CurrencyId,x.TotalAmount,x.DueDate,x.ReferenceNo,x.Notes,CreatedBy=createdBy},commandType:CommandType.StoredProcedure);
     public async Task DeleteObligationAsync(Guid id,string deletedBy,CancellationToken cancellationToken=default)=>await _connection.ExecuteAsync("dbo.uspDeleteObligation",new{ObligationId=id,DeletedBy=deletedBy},commandType:CommandType.StoredProcedure);
 
     public async Task AddObligationPayment(Guid obligationId, Guid correspondentAccountId, DateTime paymentDate, decimal amount, string referenceNo, string notes, string createdBy, CancellationToken cancellationToken = default)

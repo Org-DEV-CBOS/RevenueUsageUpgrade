@@ -1,0 +1,25 @@
+
+CREATE PROCEDURE dbo.uspDeleteOperationType
+    @OperationTypeId uniqueidentifier,
+    @DeletedBy nvarchar(100) = NULL
+AS
+BEGIN
+    DECLARE @hasTransferDeleted bit = CASE WHEN COL_LENGTH('dbo.Transfers', 'DeletedTime') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsDeleted bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'IsDeleted') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasIsActive bit = CASE WHEN COL_LENGTH('dbo.OperationTypes', 'IsActive') IS NULL THEN 0 ELSE 1 END;
+
+    DECLARE @checkSql nvarchar(max) = N'IF EXISTS (SELECT 1 FROM dbo.Transfers WHERE OperationTypeId=@OperationTypeId '
+        + CASE WHEN @hasTransferDeleted = 1 THEN N'AND DeletedTime IS NULL' ELSE N'' END + N')
+        THROW 51004, ''Operation type has movements.'', 1;';
+    EXEC sp_executesql @checkSql, N'@OperationTypeId uniqueidentifier', @OperationTypeId;
+
+    IF @hasIsDeleted = 1
+    BEGIN
+        DECLARE @set nvarchar(max) = N'IsDeleted=1';
+        IF @hasIsActive = 1 SET @set += N', IsActive=0';
+        DECLARE @sql nvarchar(max) = N'UPDATE dbo.OperationTypes SET ' + @set + N' WHERE OperationTypeId=@OperationTypeId';
+        EXEC sp_executesql @sql, N'@OperationTypeId uniqueidentifier', @OperationTypeId;
+    END
+    ELSE
+        DELETE FROM dbo.OperationTypes WHERE OperationTypeId=@OperationTypeId;
+END;

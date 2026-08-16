@@ -1,0 +1,36 @@
+
+CREATE PROCEDURE dbo.uspGetObligations
+    @ActiveOnly bit = 1,
+    @ClientType nvarchar(20) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        o.ObligationId,
+        o.ObligationDate,
+        o.ClientName,
+        o.ClientType,
+        o.BankId,
+        o.CompanyId,
+        b.bankNameEn AS BankName,
+        cm.companyNameEn AS CompanyName,
+        o.CurrencyId,
+        c.CurrencyNameAr,
+        c.CurrencyNameEn,
+        o.TotalAmount,
+        o.PaidAmount,
+        o.TotalAmount - o.PaidAmount AS RemainingAmount,
+        o.DueDate,
+        o.ReferenceNo,
+        o.Notes,
+        o.IsActive
+    FROM dbo.Obligations o
+    JOIN dbo.Currencies c ON c.CurrencyId = o.CurrencyId
+    LEFT JOIN dbo.banks b ON b.bankId = o.BankId
+    LEFT JOIN dbo.companies cm ON cm.companyId = o.CompanyId
+    WHERE o.DeletedTime IS NULL
+      AND (@ActiveOnly = 0 OR o.IsActive = 1)
+      AND (@ClientType IS NULL OR o.ClientType = @ClientType)
+    ORDER BY o.ObligationDate DESC;
+END;

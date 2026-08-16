@@ -1,0 +1,21 @@
+
+CREATE PROCEDURE dbo.uspCreateUsageType
+    @UsageTypeCode nvarchar(50),
+    @UsageTypeNameEn nvarchar(100),
+    @UsageTypeNameAr nvarchar(100) = NULL,
+    @CreatedBy nvarchar(100) = NULL
+AS
+BEGIN
+    DECLARE @hasNameAr bit = CASE WHEN COL_LENGTH('dbo.UsageTypes', 'UsageTypeNameAr') IS NULL THEN 0 ELSE 1 END;
+    DECLARE @hasCreatedBy bit = CASE WHEN COL_LENGTH('dbo.UsageTypes', 'CreatedBy') IS NULL THEN 0 ELSE 1 END;
+
+    DECLARE @cols nvarchar(max) = N'UsageTypeCode, UsageTypeNameEn';
+    DECLARE @vals nvarchar(max) = N'@UsageTypeCode, @UsageTypeNameEn';
+    IF @hasNameAr = 1 BEGIN SET @cols += N', UsageTypeNameAr'; SET @vals += N', @UsageTypeNameAr'; END;
+    IF @hasCreatedBy = 1 BEGIN SET @cols += N', CreatedBy'; SET @vals += N', @CreatedBy'; END;
+
+    DECLARE @sql nvarchar(max) = N'INSERT dbo.UsageTypes (' + @cols + N') OUTPUT inserted.UsageTypeId VALUES (' + @vals + N');';
+    EXEC sp_executesql @sql,
+        N'@UsageTypeCode nvarchar(50), @UsageTypeNameEn nvarchar(100), @UsageTypeNameAr nvarchar(100), @CreatedBy nvarchar(100)',
+        @UsageTypeCode, @UsageTypeNameEn, @UsageTypeNameAr, @CreatedBy;
+END;

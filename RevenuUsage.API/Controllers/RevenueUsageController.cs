@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace RevenuUsage.API.Controllers;
@@ -6,15 +7,10 @@ namespace RevenuUsage.API.Controllers;
 [Route("api/[controller]")]
 public class RevenueUsageController : ControllerBase
 {
-
-    public RevenueUsageController()
-    {
-    }
-
+    [AllowAnonymous]
     [HttpGet("/HealthCheck")]
-    public async Task<ActionResult> HealthCheck()
+    public ActionResult HealthCheck()
     {
         return Ok(new { status = "OK" });
     }
-
 }

@@ -1,0 +1,37 @@
+
+CREATE PROCEDURE dbo.uspGetObligationReport
+    @StartDate date = NULL,
+    @EndDate date = NULL,
+    @Status nvarchar(20) = NULL,
+    @ClientType nvarchar(20) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        o.ObligationId,
+        o.ClientName,
+        o.ClientType,
+        c.CurrencyCode,
+        o.TotalAmount,
+        o.PaidAmount,
+        o.TotalAmount - o.PaidAmount AS RemainingAmount,
+        o.DueDate,
+        CASE
+            WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
+            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
+            ELSE 'Open'
+        END AS Status
+    FROM dbo.Obligations o
+    JOIN dbo.Currencies c ON c.CurrencyId = o.CurrencyId
+    WHERE o.DeletedTime IS NULL
+      AND (@StartDate IS NULL OR o.ObligationDate >= @StartDate)
+      AND (@EndDate IS NULL OR o.ObligationDate <= @EndDate)
+      AND (@ClientType IS NULL OR o.ClientType = @ClientType)
+      AND (@Status IS NULL OR @Status = CASE
+            WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
+            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
+            ELSE 'Open'
+        END)
+    ORDER BY o.DueDate;
+END;
