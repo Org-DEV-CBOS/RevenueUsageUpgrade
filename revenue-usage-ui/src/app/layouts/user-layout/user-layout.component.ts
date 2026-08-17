@@ -1,7 +1,8 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { NavItem, SidebarNavComponent } from '../../shared/components/sidebar-nav/sidebar-nav.component';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-user-layout',
@@ -25,6 +26,9 @@ import { NavItem, SidebarNavComponent } from '../../shared/components/sidebar-na
           <div>
             <h2>{{ 'APP.SUBTITLE' | translate }}</h2>
           </div>
+          @if (auth.displayName()) {
+            <span class="topbar-user">{{ auth.displayName() }}</span>
+          }
         </header>
         <section class="page-content">
           <router-outlet />
@@ -34,6 +38,7 @@ import { NavItem, SidebarNavComponent } from '../../shared/components/sidebar-na
   `,
 })
 export class UserLayoutComponent {
+  readonly auth = inject(AuthService);
   @ViewChild('nav') set nav(sidebar: SidebarNavComponent | undefined) {
     if (!sidebar) {
       return;

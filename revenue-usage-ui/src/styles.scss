@@ -137,12 +137,22 @@ textarea {
   padding: 1rem 1.5rem;
   background: #fff;
   border-bottom: 1px solid #e5ebf3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .topbar h2 {
   margin: 0;
   font-size: 1rem;
   color: var(--blue-bg);
+}
+
+.topbar-user {
+  font-size: 0.9rem;
+  color: var(--blue-bg);
+  font-weight: 600;
 }
 
 .page-content {
@@ -388,7 +398,8 @@ textarea {
   padding: 0.5rem 0;
 }
 
-.login-card button[type='submit'] {
+.login-card button[type='submit'],
+.login-card .sso-btn {
   margin-top: 0.5rem;
   background: #fff;
   color: var(--blue-bg);
@@ -397,6 +408,11 @@ textarea {
   padding: 0.75rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.login-card .sso-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .lang-toggle {

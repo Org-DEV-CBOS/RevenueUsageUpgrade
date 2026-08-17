@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LanguageService } from '../../../core/services/language.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
 export interface NavItem {
   labelKey: string;
@@ -47,6 +48,10 @@ export interface NavItem {
           <span class="nav-icon">🌐</span>
           <span>{{ languageLabel }}</span>
         </button>
+        <button type="button" class="nav-item" (click)="logout()">
+          <span class="nav-icon">🚪</span>
+          <span>{{ 'AUTH.LOGOUT' | translate }}</span>
+        </button>
       </div>
     </nav>
   `,
@@ -56,6 +61,7 @@ export class SidebarNavComponent {
   openGroups = new Set<string>();
 
   private readonly languageService = inject(LanguageService);
+  private readonly auth = inject(AuthService);
 
   get languageLabel(): string {
     return this.languageService.currentLanguage() === 'ar' ? 'English' : 'العربية';
@@ -71,5 +77,9 @@ export class SidebarNavComponent {
 
   toggleLanguage(): void {
     this.languageService.toggleLanguage();
+  }
+
+  logout(): void {
+    this.auth.logout();
   }
 }

@@ -27,6 +27,16 @@
     "ERROR": "An error occurred",
     "CODE": "Code"
   },
+  "AUTH": {
+    "LOGIN": "Sign in",
+    "LOGOUT": "Sign out",
+    "SSO": "Sign in with Howeya",
+    "SSO_HINT": "Authorized staff only. You will be redirected to the Howeya identity portal.",
+    "VERIFYING": "Verifying session...",
+    "FORBIDDEN_TITLE": "403 — Forbidden",
+    "FORBIDDEN_BODY": "You do not have permission to access this page.",
+    "BACK_HOME": "Back to dashboard"
+  },
   "NAV": {
     "DASHBOARD": "Dashboard",
     "CORRESPONDENTS": "Correspondents",
