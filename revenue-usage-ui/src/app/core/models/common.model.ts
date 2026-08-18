@@ -64,6 +64,8 @@ export interface CorrespondentAccount {
   correspondentNameAr?: string;
   currencyId: string;
   currencyCode: string;
+  currencyNameEn?: string;
+  currencyNameAr?: string;
   accountNumber: string;
   openingBalance: number;
   currentBalance: number;

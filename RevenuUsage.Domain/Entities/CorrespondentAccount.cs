@@ -8,6 +8,8 @@ public sealed class CorrespondentAccount
     public string? CorrespondentNameAr { get; set; }
     public Guid CurrencyId { get; set; }
     public string CurrencyCode { get; set; } = string.Empty;
+    public string CurrencyNameEn { get; set; } = string.Empty;
+    public string? CurrencyNameAr { get; set; }
     public string AccountNumber { get; set; } = string.Empty;
     public decimal OpeningBalance { get; set; }
     public decimal CurrentBalance { get; set; }

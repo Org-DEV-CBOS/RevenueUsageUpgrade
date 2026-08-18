@@ -1,8 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { LanguageService } from '../../../core/services/language.service';
-import { AuthService } from '../../../core/auth/auth.service';
 
 export interface NavItem {
   labelKey: string;
@@ -17,7 +15,7 @@ export interface NavItem {
   imports: [RouterLink, RouterLinkActive, TranslatePipe],
   template: `
     <nav class="sidebar-nav">
-      @for (item of items; track item.route) {
+      @for (item of items(); track item.route) {
         @if (item.children?.length) {
           <div class="nav-group">
             <button type="button" class="nav-item" (click)="toggleGroup(item.route)">
@@ -42,30 +40,12 @@ export interface NavItem {
           </a>
         }
       }
-
-      <div class="sidebar-footer">
-        <button type="button" class="nav-item" (click)="toggleLanguage()">
-          <span class="nav-icon">🌐</span>
-          <span>{{ languageLabel }}</span>
-        </button>
-        <button type="button" class="nav-item" (click)="logout()">
-          <span class="nav-icon">🚪</span>
-          <span>{{ 'AUTH.LOGOUT' | translate }}</span>
-        </button>
-      </div>
     </nav>
   `,
 })
 export class SidebarNavComponent {
-  items: NavItem[] = [];
+  readonly items = input<NavItem[]>([]);
   openGroups = new Set<string>();
-
-  private readonly languageService = inject(LanguageService);
-  private readonly auth = inject(AuthService);
-
-  get languageLabel(): string {
-    return this.languageService.currentLanguage() === 'ar' ? 'English' : 'العربية';
-  }
 
   toggleGroup(route: string): void {
     if (this.openGroups.has(route)) {
@@ -73,13 +53,5 @@ export class SidebarNavComponent {
     } else {
       this.openGroups.add(route);
     }
-  }
-
-  toggleLanguage(): void {
-    this.languageService.toggleLanguage();
-  }
-
-  logout(): void {
-    this.auth.logout();
   }
 }

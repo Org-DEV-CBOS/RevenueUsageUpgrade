@@ -61,13 +61,11 @@ textarea {
 }
 
 .brand-logo {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.12);
-  font-weight: 700;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .brand h1,
@@ -120,11 +118,10 @@ textarea {
   padding-inline-start: 2rem;
 }
 
-.sidebar-footer {
-  margin-top: auto;
+.topbar-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .main-content {
@@ -149,10 +146,96 @@ textarea {
   color: var(--blue-bg);
 }
 
-.topbar-user {
-  font-size: 0.9rem;
+.user-menu {
+  position: relative;
+}
+
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: transparent;
+  border: 1px solid #e5ebf3;
+  border-radius: 999px;
+  padding-block: 0.35rem;
+  padding-inline-start: 0.35rem;
+  padding-inline-end: 0.7rem;
+  cursor: pointer;
+  color: var(--blue-bg);
+}
+
+.user-menu-trigger:hover,
+.user-menu-trigger[aria-expanded='true'] {
+  background: #f4f8fc;
+}
+
+.user-menu-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--sidebar-2), var(--sidebar-1));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.user-menu-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.user-menu-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-role {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.user-menu-caret {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  inset-inline-end: 0;
+  min-width: 100%;
+  background: #fff;
+  border: 1px solid #e5ebf3;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 30, 80, 0.12);
+  padding: 0.35rem;
+  z-index: 20;
+}
+
+.user-menu-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 0.85rem;
+  text-align: start;
+  cursor: pointer;
   color: var(--blue-bg);
   font-weight: 600;
+}
+
+.user-menu-item:hover {
+  background: #f4f8fc;
 }
 
 .page-content {
@@ -296,6 +379,52 @@ textarea {
   font-weight: 700;
 }
 
+.data-table td.money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.search-select {
+  position: relative;
+}
+
+.search-select input {
+  width: 100%;
+}
+
+.search-select-menu {
+  position: absolute;
+  top: calc(100% + 0.2rem);
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  max-height: 240px;
+  overflow: auto;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e5ebf3;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 30, 80, 0.12);
+  z-index: 30;
+}
+
+.search-select-menu li {
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+  color: var(--blue-bg);
+}
+
+.search-select-menu li:hover,
+.search-select-menu li.active {
+  background: #f4f8fc;
+}
+
+.search-select-menu li.empty {
+  cursor: default;
+  color: var(--text-muted);
+}
+
 .pagination {
   display: flex;
   align-items: center;
@@ -345,11 +474,18 @@ textarea {
 }
 
 .login-page {
+  position: relative;
   min-height: 100vh;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, var(--sidebar-2), var(--sidebar-1));
   padding: 1rem;
+}
+
+.login-lang {
+  position: absolute;
+  top: 1.25rem;
+  inset-inline-end: 1.25rem;
 }
 
 .login-card {
@@ -360,6 +496,12 @@ textarea {
   padding: 2rem;
   color: #fff;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.login-hint {
+  margin: 0 0 1.25rem;
+  opacity: 0.85;
 }
 
 .login-header {
@@ -368,15 +510,11 @@ textarea {
 }
 
 .login-logo {
-  width: 72px;
-  height: 72px;
+  width: 112px;
+  height: 112px;
   margin: 0 auto 1rem;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.15);
-  font-size: 2rem;
-  font-weight: 700;
+  object-fit: contain;
+  display: block;
 }
 
 .login-card form {
@@ -400,12 +538,16 @@ textarea {
 
 .login-card button[type='submit'],
 .login-card .sso-btn {
-  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 220px;
+  margin: 0 auto;
   background: #fff;
   color: var(--blue-bg);
   border: none;
   border-radius: 20px;
-  padding: 0.75rem;
+  padding: 0.75rem 1.5rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -416,14 +558,23 @@ textarea {
 }
 
 .lang-toggle {
-  margin-top: 1rem;
-  width: 100%;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   color: #fff;
-  border-radius: 20px;
-  padding: 0.6rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.lang-toggle.lang-toggle-light {
+  border-color: #e5ebf3;
+  color: var(--blue-bg);
+}
+
+.lang-toggle.lang-toggle-light:hover {
+  background: #f4f8fc;
 }
 
 .error-text {

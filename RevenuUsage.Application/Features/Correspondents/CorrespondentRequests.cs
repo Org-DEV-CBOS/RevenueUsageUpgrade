@@ -110,7 +110,7 @@ public sealed class CorrespondentRequestHandler :
 
     private static CorrespondentAccountDto Map(CorrespondentAccount x) => new(
         x.CorrespondentAccountId, x.CorrespondentId, x.CorrespondentNameEn, x.CorrespondentNameAr,
-        x.CurrencyId, x.CurrencyCode, x.AccountNumber, x.OpeningBalance, x.CurrentBalance,
+        x.CurrencyId, x.CurrencyCode, x.CurrencyNameEn, x.CurrencyNameAr, x.AccountNumber, x.OpeningBalance, x.CurrentBalance,
         x.IsActive, x.HasMovements);
 }
 
@@ -119,8 +119,9 @@ public sealed class CreateCorrespondentCommandValidator : AbstractValidator<Crea
     public CreateCorrespondentCommandValidator()
     {
         RuleFor(x => x.Model.CorrespondentCode).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Model.CorrespondentNameEn).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Model.CorrespondentNameEn).NotEmpty().MinimumLength(3).MaximumLength(200);
         RuleFor(x => x.Model.CorrespondentNameAr).MaximumLength(200);
+        RuleFor(x => x.Model.CountryId).NotEmpty();
     }
 }
 
@@ -130,8 +131,9 @@ public sealed class UpdateCorrespondentCommandValidator : AbstractValidator<Upda
     {
         RuleFor(x => x.Model.CorrespondentId).NotEmpty();
         RuleFor(x => x.Model.CorrespondentCode).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Model.CorrespondentNameEn).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Model.CorrespondentNameEn).NotEmpty().MinimumLength(3).MaximumLength(200);
         RuleFor(x => x.Model.CorrespondentNameAr).MaximumLength(200);
+        RuleFor(x => x.Model.CountryId).NotEmpty();
     }
 }
 

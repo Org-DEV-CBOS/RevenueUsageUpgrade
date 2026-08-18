@@ -2,6 +2,8 @@ import { Injectable, signal, computed, isDevMode } from '@angular/core';
 import { OAuthService, AuthConfig, OAuthErrorEvent } from 'angular-oauth2-oidc';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
+import { SYSTEM_USER } from '../constants/system-user';
+import { ROLE_ADMIN, roleLabelKey as toRoleLabelKey } from './roles';
 
 export interface RutsUserProfile {
   userId: string;
@@ -28,6 +30,18 @@ export class AuthService {
   readonly isLoggedIn = computed(
     () => (isDevMode() && environment.bypassAuth) || this.oauthService.hasValidAccessToken(),
   );
+  readonly displayName = computed(() => {
+    const profile = this._profile();
+    if (!profile) return '';
+    return profile.fullNameAr || profile.userName || profile.email;
+  });
+  readonly roleLabelKey = computed(() =>
+    toRoleLabelKey(this._activeRoleId() ?? this._profile()?.roles[0] ?? null),
+  );
+  readonly isAdmin = computed(() => {
+    const roles = this._profile()?.roles ?? [];
+    return this._activeRoleId() === ROLE_ADMIN || roles.includes(ROLE_ADMIN);
+  });
 
   constructor(
     private oauthService: OAuthService,
@@ -69,16 +83,19 @@ export class AuthService {
     return sessionStorage.getItem('ruts_activeRoleId');
   }
 
+  defaultPath(): string {
+    return this.isAdmin() ? '/admin/dashboard' : '/app/dashboard';
+  }
+
+  actor(): string {
+    const profile = this._profile();
+    return profile?.userName || profile?.email || profile?.userId || SYSTEM_USER;
+  }
+
   clearAuthContext(): void {
     this._profile.set(null);
     this._activeRoleId.set(null);
     sessionStorage.removeItem('ruts_activeRoleId');
-  }
-
-  displayName(): string {
-    const profile = this._profile();
-    if (!profile) return '';
-    return profile.fullNameAr || profile.userName || profile.email;
   }
 
   private async configureInternal(): Promise<void> {
@@ -119,15 +136,15 @@ export class AuthService {
 
   private applyDevBypassProfile(): void {
     if (!this._activeRoleId()) {
-      this._activeRoleId.set('1');
-      sessionStorage.setItem('ruts_activeRoleId', '1');
+      this._activeRoleId.set(ROLE_ADMIN);
+      sessionStorage.setItem('ruts_activeRoleId', ROLE_ADMIN);
     }
     this._profile.set({
       userId: 'dev-bypass',
       userName: 'Dev Tester',
       fullNameAr: 'مستخدم تجريبي',
       email: 'dev-bypass@local.test',
-      roles: ['1'],
+      roles: [ROLE_ADMIN],
       activeRoleId: this._activeRoleId(),
       organizationId: '',
       organizationName: '',
@@ -139,29 +156,37 @@ export class AuthService {
     if (!claims) return;
     const roles: string[] = [];
     const addRole = (r: unknown) => {
-      const s = String(r);
-      if (!roles.includes(s)) roles.push(s);
+      const s = String(r).trim();
+      if (s && !roles.includes(s)) roles.push(s);
     };
 
-    const roleClaim = claims['role'];
-    if (Array.isArray(roleClaim)) roleClaim.forEach(addRole);
-    else if (roleClaim != null) addRole(roleClaim);
+    const collectRoles = (source: Record<string, unknown> | null | undefined) => {
+      if (!source) return;
+      for (const key of ['role', 'roles']) {
+        const value = source[key];
+        if (Array.isArray(value)) value.forEach(addRole);
+        else if (value != null) addRole(value);
+      }
+    };
+
+    collectRoles(claims);
 
     try {
       const at = this.oauthService.getAccessToken();
       if (at) {
-        const payload = JSON.parse(atob(at.split('.')[1]));
-        const atRole = payload['role'];
-        if (Array.isArray(atRole)) atRole.forEach(addRole);
-        else if (atRole != null) addRole(atRole);
+        collectRoles(JSON.parse(atob(at.split('.')[1])) as Record<string, unknown>);
       }
     } catch {
       /* ignore malformed token */
     }
 
-    if (!this._activeRoleId() && roles.length > 0) {
-      this._activeRoleId.set(roles[0]);
-      sessionStorage.setItem('ruts_activeRoleId', roles[0]);
+    const storedRole = this._activeRoleId();
+    const preferred = roles.includes(ROLE_ADMIN) ? ROLE_ADMIN : roles[0];
+    const nextRole =
+      storedRole && roles.includes(storedRole) ? storedRole : preferred ?? null;
+    if (nextRole && nextRole !== storedRole) {
+      this._activeRoleId.set(nextRole);
+      sessionStorage.setItem('ruts_activeRoleId', nextRole);
     }
 
     this._profile.set({

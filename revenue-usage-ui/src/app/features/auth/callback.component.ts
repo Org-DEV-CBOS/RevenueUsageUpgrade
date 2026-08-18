@@ -16,9 +16,17 @@ export class CallbackComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     await this.auth.configure();
     if (this.auth.isLoggedIn()) {
-      void this.router.navigate(['/app/dashboard']);
+      void this.router.navigateByUrl(this.auth.defaultPath());
     } else {
       void this.router.navigate(['/login']);
     }
   }
 }
+
+@Component({
+  selector: 'app-home-redirect',
+  standalone: true,
+  template: '',
+})
+export class HomeRedirectComponent {}
+

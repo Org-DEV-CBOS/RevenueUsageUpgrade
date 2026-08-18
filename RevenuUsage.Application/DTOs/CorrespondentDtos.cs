@@ -33,6 +33,8 @@ public sealed record CorrespondentAccountDto(
     string? CorrespondentNameAr,
     Guid CurrencyId,
     string CurrencyCode,
+    string? CurrencyNameEn,
+    string? CurrencyNameAr,
     string AccountNumber,
     decimal OpeningBalance,
     decimal CurrentBalance,

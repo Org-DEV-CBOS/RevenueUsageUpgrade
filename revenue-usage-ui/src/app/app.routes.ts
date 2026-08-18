@@ -1,5 +1,6 @@
 import { Route, Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { adminGuard, authGuard, guestGuard, homeRedirectGuard } from './core/auth/auth.guard';
+import { HomeRedirectComponent } from './features/auth/callback.component';
 import { AdminLayoutComponent } from './layouts/admin-layout/admin-layout.component';
 import { UserLayoutComponent } from './layouts/user-layout/user-layout.component';
 import { AdminDashboardComponent, UserDashboardComponent } from './features/dashboard/dashboard.component';
@@ -32,7 +33,7 @@ function apiRoute(path: string, key: keyof typeof API_PAGE_CONFIGS): Route {
 }
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'app/dashboard' },
+  { path: '', pathMatch: 'full', canActivate: [homeRedirectGuard], component: HomeRedirectComponent },
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
@@ -68,7 +69,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     component: AdminLayoutComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, adminGuard],
     children: [
       { path: 'dashboard', component: AdminDashboardComponent },
       { path: 'correspondents', component: CorrespondentListComponent },
@@ -98,5 +99,5 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },
-  { path: '**', redirectTo: 'app/dashboard' },
+  { path: '**', canActivate: [homeRedirectGuard], component: HomeRedirectComponent },
 ];

@@ -1,7 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { SYSTEM_USER } from '../../core/constants/system-user';
 import {
   Beneficiary,
@@ -19,13 +20,17 @@ import {
 } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { extractHttpError } from '../../core/utils/http-error.util';
+import { generateEntityCode } from '../../core/utils/generate-code';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
+import { MoneyPipe } from '../../shared/pipes/money.pipe';
+import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
 
 // --- Accounts ---
 @Component({
   selector: 'app-account-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, MoneyPipe],
+  providers: [LocalizedFieldPipe],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -51,9 +56,9 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
               @for (item of items(); track item.correspondentAccountId) {
                 <tr>
                   <td>{{ item.accountNumber }}</td>
-                  <td>{{ item.correspondentNameEn || item.correspondentNameAr }}</td>
-                  <td>{{ item.currencyCode }}</td>
-                  <td>{{ item.currentBalance }}</td>
+                  <td>{{ item | localizedField:'correspondentNameEn':'correspondentNameAr' }}</td>
+                  <td>{{ currencyName(item) }}</td>
+                  <td class="money">{{ item.currentBalance | money }}</td>
                   <td>
                     <a [routerLink]="['/admin/accounts/edit', item.correspondentAccountId]" class="btn-icon">✎</a>
                     <button type="button" class="btn-icon danger" (click)="confirmDelete(item)">🗑</button>
@@ -69,12 +74,27 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 })
 export class AccountListComponent implements OnInit {
   private readonly api = inject(CorrespondentAccountsApiService);
+  private readonly currenciesApi = inject(CurrenciesApiService);
   private readonly toast = inject(ToastService);
+  private readonly localized = inject(LocalizedFieldPipe);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<CorrespondentAccount[]>([]);
+  readonly currencies = signal<Currency[]>([]);
 
   ngOnInit(): void { this.load(); }
+
+  currencyName(item: CorrespondentAccount): string {
+    const fromAccount = this.localized.transform(item, 'currencyNameEn', 'currencyNameAr');
+    if (fromAccount) {
+      return fromAccount;
+    }
+
+    const currency = this.currencies().find((c) => c.currencyId === item.currencyId);
+    return currency
+      ? this.localized.transform(currency, 'currencyNameEn', 'currencyNameAr')
+      : item.currencyCode;
+  }
 
   confirmDelete(item: CorrespondentAccount): void {
     if (!confirm('Delete account?')) return;
@@ -87,9 +107,13 @@ export class AccountListComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.getAll().subscribe({
+    this.api.getAll({ activeOnly: false }).subscribe({
       next: (data) => { this.items.set(data); this.loading.set(false); },
       error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
+    });
+    this.currenciesApi.getAll().subscribe({
+      next: (data) => this.currencies.set(data),
+      error: () => this.currencies.set([]),
     });
   }
 }
@@ -97,7 +121,8 @@ export class AccountListComponent implements OnInit {
 @Component({
   selector: 'app-account-form',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, RouterLink],
+  imports: [ReactiveFormsModule, TranslatePipe, RouterLink, SearchSelectComponent],
+  providers: [LocalizedFieldPipe],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -107,23 +132,13 @@ export class AccountListComponent implements OnInit {
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
       <form class="form-panel" [formGroup]="form" (ngSubmit)="save()">
         <label>{{ 'NAV.CORRESPONDENTS' | translate }} *
-          <select formControlName="correspondentId">
-            <option value="">—</option>
-            @for (c of correspondents(); track c.correspondentId) {
-              <option [value]="c.correspondentId">{{ c.correspondentNameEn || c.correspondentNameAr }}</option>
-            }
-          </select>
+          <app-search-select formControlName="correspondentId" [options]="correspondentOptions()" />
         </label>
         <label>{{ 'NAV.CURRENCIES' | translate }} *
-          <select formControlName="currencyId">
-            <option value="">—</option>
-            @for (c of currencies(); track c.currencyId) {
-              <option [value]="c.currencyId">{{ c.currencyCode }} - {{ c.currencyNameEn }}</option>
-            }
-          </select>
+          <app-search-select formControlName="currencyId" [options]="currencyOptions()" />
         </label>
         <label>{{ 'ACCOUNTS.NUMBER' | translate }} *<input formControlName="accountNumber" /></label>
-        <label>{{ 'ACCOUNTS.OPENING_BALANCE' | translate }} *<input type="number" formControlName="openingBalance" /></label>
+        <label>{{ 'ACCOUNTS.OPENING_BALANCE' | translate }} *<input type="number" step="0.01" formControlName="openingBalance" /></label>
         @if (isEdit) {
           <label class="checkbox"><input type="checkbox" formControlName="isActive" /> {{ 'COMMON.ACTIVE' | translate }}</label>
         }
@@ -141,6 +156,7 @@ export class AccountFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly localized = inject(LocalizedFieldPipe);
 
   isEdit = false;
   id = '';
@@ -148,6 +164,20 @@ export class AccountFormComponent implements OnInit {
   readonly error = signal('');
   readonly correspondents = signal<Correspondent[]>([]);
   readonly currencies = signal<Currency[]>([]);
+
+  correspondentOptions(): SearchSelectOption[] {
+    return this.correspondents().map((item) => ({
+      value: item.correspondentId,
+      label: this.localized.transform(item, 'correspondentNameEn', 'correspondentNameAr'),
+    }));
+  }
+
+  currencyOptions(): SearchSelectOption[] {
+    return this.currencies().map((item) => ({
+      value: item.currencyId,
+      label: this.localized.transform(item, 'currencyNameEn', 'currencyNameAr') || item.currencyCode,
+    }));
+  }
 
   readonly form = this.fb.nonNullable.group({
     correspondentId: ['', Validators.required],
@@ -210,8 +240,10 @@ export class AccountFormComponent implements OnInit {
         @else {
           <table class="data-table">
             <thead><tr>
-              <th>{{ 'COMMON.CODE' | translate }}</th><th>{{ 'BANKS.NAME' | translate }}</th>
-              <th>{{ 'COMMON.ACTIVE' | translate }}</th><th>{{ 'COMMON.ACTIONS' | translate }}</th>
+              <th>{{ 'COMMON.CODE' | translate }}</th>
+              <th>{{ 'BENEFICIARIES.NAME' | translate }}</th>
+              <th>{{ 'COMMON.ACTIVE' | translate }}</th>
+              <th>{{ 'COMMON.ACTIONS' | translate }}</th>
             </tr></thead>
             <tbody>
               @for (item of items(); track item.beneficiaryId) {
@@ -248,7 +280,7 @@ export class BeneficiaryListComponent implements OnInit {
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({
+    this.api.getAll({ activeOnly: false }).subscribe({
       next: (d) => { this.items.set(d); this.loading.set(false); },
       error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
     });
@@ -267,9 +299,11 @@ export class BeneficiaryListComponent implements OnInit {
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
       <form class="form-panel" [formGroup]="form" (ngSubmit)="save()">
-        <label>{{ 'COMMON.CODE' | translate }} *<input formControlName="beneficiaryCode" /></label>
-        <label>{{ 'BANKS.NAME_EN' | translate }} *<input formControlName="beneficiaryNameEn" /></label>
-        <label>{{ 'BANKS.NAME_AR' | translate }}<input formControlName="beneficiaryNameAr" /></label>
+        @if (isEdit) {
+          <label>{{ 'COMMON.CODE' | translate }}<input formControlName="beneficiaryCode" readonly /></label>
+        }
+        <label>{{ 'BENEFICIARIES.NAME_EN' | translate }} *<input formControlName="beneficiaryNameEn" /></label>
+        <label>{{ 'BENEFICIARIES.NAME_AR' | translate }}<input formControlName="beneficiaryNameAr" /></label>
         @if (isEdit) { <label class="checkbox"><input type="checkbox" formControlName="isActive" /> {{ 'COMMON.ACTIVE' | translate }}</label> }
         <div class="form-actions"><button type="submit" class="btn-primary" [disabled]="form.invalid">{{ 'COMMON.SAVE' | translate }}</button></div>
       </form>
@@ -284,7 +318,7 @@ export class BeneficiaryFormComponent implements OnInit {
   isEdit = false; id = '';
   readonly error = signal('');
   readonly form = this.fb.nonNullable.group({
-    beneficiaryCode: ['', Validators.required],
+    beneficiaryCode: [''],
     beneficiaryNameEn: ['', Validators.required],
     beneficiaryNameAr: [''],
     isActive: [true],
@@ -313,7 +347,12 @@ export class BeneficiaryFormComponent implements OnInit {
   save(): void {
     if (this.form.invalid) return;
     const value = this.form.getRawValue();
-    const payload = { ...value, actor: SYSTEM_USER, beneficiaryId: this.isEdit ? this.id : null };
+    const payload = {
+      ...value,
+      beneficiaryCode: this.isEdit ? value.beneficiaryCode : generateEntityCode('BNF'),
+      actor: SYSTEM_USER,
+      beneficiaryId: this.isEdit ? this.id : null,
+    };
     const request$ = this.isEdit ? this.api.update(this.id, payload) : this.api.create(payload);
     request$.subscribe({
       next: () => this.router.navigateByUrl('/admin/beneficiaries'),
@@ -465,8 +504,10 @@ export class CurrencyFormComponent implements OnInit {
         @else {
           <table class="data-table">
             <thead><tr>
-              <th>{{ 'COMMON.CODE' | translate }}</th><th>{{ 'BANKS.NAME' | translate }}</th>
-              <th>{{ 'COMMON.ACTIVE' | translate }}</th><th>{{ 'COMMON.ACTIONS' | translate }}</th>
+              <th>{{ 'COMMON.CODE' | translate }}</th>
+              <th>{{ 'RESOURCES.NAME' | translate }}</th>
+              <th>{{ 'COMMON.ACTIVE' | translate }}</th>
+              <th>{{ 'COMMON.ACTIONS' | translate }}</th>
             </tr></thead>
             <tbody>
               @for (item of items(); track item.resourceTypeId) {
@@ -489,21 +530,23 @@ export class CurrencyFormComponent implements OnInit {
 })
 export class ResourceListComponent implements OnInit {
   private readonly api = inject(ResourcesApiService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly translate = inject(TranslateService);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<ResourceType[]>([]);
   ngOnInit(): void { this.load(); }
   confirmDelete(item: ResourceType): void {
-    if (!confirm('Delete?')) return;
-    this.api.deleteType(item.resourceTypeId).subscribe({
-      next: () => { this.toast.success('Deleted'); this.load(); },
+    if (!confirm(this.translate.instant('COMMON.CONFIRM_DELETE'))) return;
+    this.api.deleteType(item.resourceTypeId, this.auth.actor()).subscribe({
+      next: () => { this.toast.success(this.translate.instant('COMMON.SUCCESS')); this.load(); },
       error: (err) => this.toast.error(extractHttpError(err)),
     });
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getTypes().subscribe({
+    this.api.getTypes({ activeOnly: false }).subscribe({
       next: (d) => { this.items.set(d); this.loading.set(false); },
       error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
     });
@@ -522,9 +565,11 @@ export class ResourceListComponent implements OnInit {
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
       <form class="form-panel" [formGroup]="form" (ngSubmit)="save()">
-        <label>{{ 'COMMON.CODE' | translate }} *<input formControlName="resourceTypeCode" /></label>
-        <label>{{ 'BANKS.NAME_EN' | translate }} *<input formControlName="resourceTypeNameEn" /></label>
-        <label>{{ 'BANKS.NAME_AR' | translate }}<input formControlName="resourceTypeNameAr" /></label>
+        @if (isEdit) {
+          <label>{{ 'COMMON.CODE' | translate }}<input formControlName="resourceTypeCode" readonly /></label>
+        }
+        <label>{{ 'RESOURCES.NAME_EN' | translate }} *<input formControlName="resourceTypeNameEn" /></label>
+        <label>{{ 'RESOURCES.NAME_AR' | translate }}<input formControlName="resourceTypeNameAr" /></label>
         @if (isEdit) { <label class="checkbox"><input type="checkbox" formControlName="isActive" /> {{ 'COMMON.ACTIVE' | translate }}</label> }
         <div class="form-actions"><button type="submit" class="btn-primary" [disabled]="form.invalid">{{ 'COMMON.SAVE' | translate }}</button></div>
       </form>
@@ -533,13 +578,14 @@ export class ResourceListComponent implements OnInit {
 })
 export class ResourceFormComponent implements OnInit {
   private readonly api = inject(ResourcesApiService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   isEdit = false; id = '';
   readonly error = signal('');
   readonly form = this.fb.nonNullable.group({
-    resourceTypeCode: ['', Validators.required],
+    resourceTypeCode: [''],
     resourceTypeNameEn: ['', Validators.required],
     resourceTypeNameAr: [''],
     isActive: [true],
@@ -549,17 +595,31 @@ export class ResourceFormComponent implements OnInit {
     if (segments.includes('edit')) {
       this.isEdit = true;
       this.id = segments[segments.indexOf('edit') + 1];
-      this.api.getTypes().subscribe({
+      this.api.getTypes({ activeOnly: false }).subscribe({
         next: (items) => {
           const item = items.find((r) => r.resourceTypeId === this.id);
-          if (item) this.form.patchValue(item);
+          if (item) {
+            this.form.patchValue({
+              resourceTypeCode: item.resourceTypeCode,
+              resourceTypeNameEn: item.resourceTypeNameEn,
+              resourceTypeNameAr: item.resourceTypeNameAr ?? '',
+              isActive: item.isActive,
+            });
+          }
         },
+        error: (err) => this.error.set(extractHttpError(err)),
       });
     }
   }
   save(): void {
     if (this.form.invalid) return;
-    const payload = { ...this.form.getRawValue(), actor: SYSTEM_USER, resourceTypeId: this.isEdit ? this.id : null };
+    const value = this.form.getRawValue();
+    const payload = {
+      ...value,
+      resourceTypeCode: this.isEdit ? value.resourceTypeCode : generateEntityCode('RST'),
+      actor: this.auth.actor(),
+      resourceTypeId: this.isEdit ? this.id : null,
+    };
     const request$ = this.isEdit ? this.api.updateType(this.id, payload) : this.api.createType(payload);
     request$.subscribe({
       next: () => this.router.navigateByUrl('/admin/resources'),

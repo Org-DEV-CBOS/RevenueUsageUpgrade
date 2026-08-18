@@ -121,6 +121,16 @@ export class ApiRoutePageComponent implements OnInit {
       return '';
     }
 
+    if (/(balance|amount)/i.test(key)) {
+      const amount = Number(value);
+      if (Number.isFinite(amount)) {
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount);
+      }
+    }
+
     if (typeof value === 'boolean') {
       return value ? 'Yes' : 'No';
     }
@@ -206,7 +216,7 @@ export const API_PAGE_CONFIGS = {
     columns: [
       { key: 'accountNumber', label: 'TRANSFERS.REFERENCE' },
       { key: 'correspondentNameEn', label: 'NAV.CORRESPONDENTS' },
-      { key: 'currencyCode', label: 'NAV.CURRENCIES' },
+      { key: 'currencyNameEn', label: 'NAV.CURRENCIES' },
       { key: 'currentBalance', label: 'DASHBOARD.TOTAL_BALANCE' },
       { key: 'isActive', label: 'COMMON.ACTIVE' },
     ],
@@ -216,8 +226,8 @@ export const API_PAGE_CONFIGS = {
     endpoint: 'beneficiaries',
     columns: [
       { key: 'beneficiaryCode', label: 'COMMON.CODE' },
-      { key: 'beneficiaryNameEn', label: 'BANKS.NAME_EN' },
-      { key: 'beneficiaryNameAr', label: 'BANKS.NAME_AR' },
+      { key: 'beneficiaryNameEn', label: 'BENEFICIARIES.NAME_EN' },
+      { key: 'beneficiaryNameAr', label: 'BENEFICIARIES.NAME_AR' },
       { key: 'isActive', label: 'COMMON.ACTIVE' },
     ],
   },
@@ -248,8 +258,8 @@ export const API_PAGE_CONFIGS = {
     endpoint: 'resource-types',
     columns: [
       { key: 'resourceTypeCode', label: 'COMMON.CODE' },
-      { key: 'resourceTypeNameEn', label: 'BANKS.NAME_EN' },
-      { key: 'resourceTypeNameAr', label: 'BANKS.NAME_AR' },
+      { key: 'resourceTypeNameEn', label: 'RESOURCES.NAME_EN' },
+      { key: 'resourceTypeNameAr', label: 'RESOURCES.NAME_AR' },
       { key: 'isActive', label: 'COMMON.ACTIVE' },
     ],
   },

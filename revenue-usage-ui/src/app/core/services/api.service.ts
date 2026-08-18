@@ -124,8 +124,8 @@ export class CorrespondentsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/correspondents`;
 
-  getAll() {
-    return this.http.get<Correspondent[]>(this.baseUrl);
+  getAll(params?: { activeOnly?: boolean }) {
+    return this.http.get<Correspondent[]>(this.baseUrl, { params: toHttpParams(params) });
   }
 
   getById(id: string) {
@@ -133,16 +133,16 @@ export class CorrespondentsApiService {
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post<string>(this.baseUrl, { ...payload, createdBy: SYSTEM_USER });
+    return this.http.post<string>(this.baseUrl, { createdBy: SYSTEM_USER, ...payload });
   }
 
   update(id: string, payload: Record<string, unknown>) {
-    return this.http.put(`${this.baseUrl}/${id}`, { ...payload, modifiedBy: SYSTEM_USER });
+    return this.http.put(`${this.baseUrl}/${id}`, { modifiedBy: SYSTEM_USER, ...payload });
   }
 
-  delete(id: string) {
+  delete(id: string, deletedBy?: string) {
     return this.http.delete(`${this.baseUrl}/${id}`, {
-      body: { deletedBy: SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: deletedBy ?? SYSTEM_USER } satisfies DeleteMasterDataRequest,
     });
   }
 }
@@ -152,7 +152,7 @@ export class CorrespondentAccountsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/correspondentaccounts`;
 
-  getAll(params?: { correspondentId?: string; currencyId?: string }) {
+  getAll(params?: { correspondentId?: string; currencyId?: string; activeOnly?: boolean }) {
     return this.http.get<CorrespondentAccount[]>(this.baseUrl, { params: toHttpParams(params) });
   }
 
@@ -180,8 +180,8 @@ export class BeneficiariesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/beneficiaries`;
 
-  getAll() {
-    return this.http.get<Beneficiary[]>(this.baseUrl);
+  getAll(params?: { activeOnly?: boolean }) {
+    return this.http.get<Beneficiary[]>(this.baseUrl, { params: toHttpParams(params) });
   }
 
   create(payload: Record<string, unknown>) {
@@ -340,21 +340,21 @@ export class ResourcesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/resources`;
 
-  getTypes() {
-    return this.http.get<ResourceType[]>(`${this.baseUrl}/types`);
+  getTypes(params?: { activeOnly?: boolean }) {
+    return this.http.get<ResourceType[]>(`${this.baseUrl}/types`, { params: toHttpParams(params) });
   }
 
   createType(payload: Record<string, unknown>) {
-    return this.http.post(`${this.baseUrl}/types`, { ...payload, actor: SYSTEM_USER });
+    return this.http.post(`${this.baseUrl}/types`, { actor: SYSTEM_USER, ...payload });
   }
 
   updateType(id: string, payload: Record<string, unknown>) {
-    return this.http.put(`${this.baseUrl}/types/${id}`, { ...payload, actor: SYSTEM_USER });
+    return this.http.put(`${this.baseUrl}/types/${id}`, { actor: SYSTEM_USER, ...payload });
   }
 
-  deleteType(id: string) {
+  deleteType(id: string, deletedBy?: string) {
     return this.http.delete(`${this.baseUrl}/types/${id}`, {
-      body: { deletedBy: SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: deletedBy ?? SYSTEM_USER } satisfies DeleteMasterDataRequest,
     });
   }
 

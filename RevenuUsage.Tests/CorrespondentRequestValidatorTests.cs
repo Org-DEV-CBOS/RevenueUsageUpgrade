@@ -6,7 +6,7 @@ namespace RevenuUsage.Tests;
 public sealed class CorrespondentRequestValidatorTests
 {
     [Fact]
-    public async Task Correspondent_requires_code_and_english_name()
+    public async Task Correspondent_requires_code_english_name_and_country()
     {
         var command = new CreateCorrespondentCommand(new CreateCorrespondentDto("", "", null, null, null));
 
@@ -14,6 +14,7 @@ public sealed class CorrespondentRequestValidatorTests
 
         Assert.Contains(result.Errors, error => error.PropertyName.EndsWith("CorrespondentCode"));
         Assert.Contains(result.Errors, error => error.PropertyName.EndsWith("CorrespondentNameEn"));
+        Assert.Contains(result.Errors, error => error.PropertyName.EndsWith("CountryId"));
     }
 
     [Fact]

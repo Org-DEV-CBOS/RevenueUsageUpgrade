@@ -10,8 +10,37 @@ export const authGuard: CanActivateFn = async () => {
 
   if (auth.isLoggedIn()) return true;
 
-  void router.navigate(['/login']);
-  return false;
+  return router.createUrlTree(['/login']);
+};
+
+export const adminGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  await auth.configure();
+
+  if (!auth.isLoggedIn()) {
+    return router.createUrlTree(['/login']);
+  }
+
+  if (!auth.isAdmin()) {
+    return router.createUrlTree(['/forbidden']);
+  }
+
+  return true;
+};
+
+export const homeRedirectGuard: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  await auth.configure();
+
+  if (!auth.isLoggedIn()) {
+    return router.createUrlTree(['/login']);
+  }
+
+  return router.createUrlTree([auth.defaultPath()]);
 };
 
 export const guestGuard: CanActivateFn = async () => {
@@ -22,6 +51,5 @@ export const guestGuard: CanActivateFn = async () => {
 
   if (!auth.isLoggedIn()) return true;
 
-  void router.navigate(['/app/dashboard']);
-  return false;
+  return router.createUrlTree([auth.defaultPath()]);
 };

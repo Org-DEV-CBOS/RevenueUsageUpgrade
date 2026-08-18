@@ -11,7 +11,7 @@ import { TranslatePipe } from '@ngx-translate/core';
       <div class="login-card">
         <h2>{{ 'AUTH.FORBIDDEN_TITLE' | translate }}</h2>
         <p>{{ 'AUTH.FORBIDDEN_BODY' | translate }}</p>
-        <a routerLink="/app/dashboard">{{ 'AUTH.BACK_HOME' | translate }}</a>
+        <a routerLink="/">{{ 'AUTH.BACK_HOME' | translate }}</a>
       </div>
     </div>
   `,

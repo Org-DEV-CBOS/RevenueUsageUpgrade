@@ -1,24 +1,25 @@
-import { Component, ViewChild, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageToggleComponent } from '../../shared/components/language-toggle/language-toggle.component';
 import { NavItem, SidebarNavComponent } from '../../shared/components/sidebar-nav/sidebar-nav.component';
-import { AuthService } from '../../core/auth/auth.service';
+import { UserMenuComponent } from '../../shared/components/user-menu/user-menu.component';
 
 @Component({
   selector: 'app-user-layout',
   standalone: true,
-  imports: [RouterOutlet, TranslatePipe, SidebarNavComponent],
+  imports: [RouterOutlet, TranslatePipe, SidebarNavComponent, UserMenuComponent, LanguageToggleComponent],
   template: `
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <div class="brand-logo">R</div>
+          <img class="brand-logo" src="/cbos-logo-white.png" alt="CBOS" />
           <div>
             <h1>{{ 'APP.TITLE' | translate }}</h1>
             <p>{{ 'APP.SUBTITLE' | translate }}</p>
           </div>
         </div>
-        <app-sidebar-nav #nav />
+        <app-sidebar-nav [items]="userNavItems" />
       </aside>
 
       <main class="main-content">
@@ -26,9 +27,10 @@ import { AuthService } from '../../core/auth/auth.service';
           <div>
             <h2>{{ 'APP.SUBTITLE' | translate }}</h2>
           </div>
-          @if (auth.displayName()) {
-            <span class="topbar-user">{{ auth.displayName() }}</span>
-          }
+          <div class="topbar-actions">
+            <app-language-toggle variant="light" />
+            <app-user-menu />
+          </div>
         </header>
         <section class="page-content">
           <router-outlet />
@@ -38,16 +40,7 @@ import { AuthService } from '../../core/auth/auth.service';
   `,
 })
 export class UserLayoutComponent {
-  readonly auth = inject(AuthService);
-  @ViewChild('nav') set nav(sidebar: SidebarNavComponent | undefined) {
-    if (!sidebar) {
-      return;
-    }
-
-    sidebar.items = this.userNavItems;
-  }
-
-  private readonly userNavItems: NavItem[] = [
+  readonly userNavItems: NavItem[] = [
     { labelKey: 'NAV.DASHBOARD', icon: '🏠', route: '/app/dashboard' },
     { labelKey: 'NAV.ACCOUNTS', icon: '💼', route: '/app/accounts' },
     { labelKey: 'NAV.TRANSACTIONS', icon: '💸', route: '/app/transfers' },

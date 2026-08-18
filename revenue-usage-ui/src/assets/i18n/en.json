@@ -35,7 +35,9 @@
     "VERIFYING": "Verifying session...",
     "FORBIDDEN_TITLE": "403 — Forbidden",
     "FORBIDDEN_BODY": "You do not have permission to access this page.",
-    "BACK_HOME": "Back to dashboard"
+    "BACK_HOME": "Back to dashboard",
+    "ROLE_ADMIN": "Admin",
+    "ROLE_USER": "User"
   },
   "NAV": {
     "DASHBOARD": "Dashboard",
@@ -85,7 +87,13 @@
     "ISO": "ISO Code"
   },
   "CORRESPONDENTS": {
-    "ADD": "+ Add Correspondent"
+    "TITLE": "Correspondents",
+    "ADD": "+ Add Correspondent",
+    "NAME": "Correspondent Name",
+    "NAME_EN": "Correspondent Name (English)",
+    "NAME_AR": "Correspondent Name (Arabic)",
+    "CODE": "BIC code",
+    "COUNTRY": "Correspondent Country"
   },
   "ACCOUNTS": {
     "ADD": "+ Add Account",
@@ -94,7 +102,11 @@
     "OPENING_BALANCE": "Opening Balance"
   },
   "BENEFICIARIES": {
-    "ADD": "+ Add Beneficiary"
+    "TITLE": "Beneficiaries",
+    "ADD": "+ Add Beneficiary",
+    "NAME": "Beneficiary Name",
+    "NAME_EN": "Beneficiary Name (English)",
+    "NAME_AR": "Beneficiary Name (Arabic)"
   },
   "CURRENCIES": {
     "ADD": "+ Add Currency",
@@ -102,7 +114,10 @@
     "DECIMALS": "Decimal Places"
   },
   "RESOURCES": {
-    "ADD": "+ Add Resource Type"
+    "ADD": "+ Add Resource",
+    "NAME": "Resource Name",
+    "NAME_EN": "Resource Name (English)",
+    "NAME_AR": "Resource Name (Arabic)"
   },
   "TRANSFERS": {
     "TITLE": "Transactions",
@@ -114,7 +129,7 @@
   },
   "DASHBOARD": {
     "TITLE": "Dashboard",
-    "WELCOME": "Welcome back",
+    "WELCOME": "Welcome back, {{name}}",
     "TOTAL_BALANCE": "Total Balance",
     "ACTIVE_OBLIGATIONS": "Active Obligations",
     "PENDING_TRANSFERS": "Pending Transfers"

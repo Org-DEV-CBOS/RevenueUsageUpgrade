@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: '/api',
+  apiUrl: 'https://localhost:7068/api',
   bypassAuth: false,
   oidc: {
     issuer: 'https://dev-staging.cbos.gov.sd:5000/',

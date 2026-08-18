@@ -1,20 +1,23 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { ReportsApiService } from '../../core/services/api.service';
+import { MoneyPipe } from '../../shared/pipes/money.pipe';
 
 @Component({
   selector: 'app-user-dashboard',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, MoneyPipe],
   template: `
     <div class="dashboard">
       <h1>{{ 'DASHBOARD.TITLE' | translate }}</h1>
-      <p class="welcome">{{ 'DASHBOARD.WELCOME' | translate }}</p>
+      <p class="welcome">{{ 'DASHBOARD.WELCOME' | translate:{ name: auth.displayName() } }}</p>
 
       <div class="stats-grid">
         <article class="stat-card">
           <span>{{ 'DASHBOARD.TOTAL_BALANCE' | translate }}</span>
-          <strong>{{ summary?.['totalBalance'] ?? '—' }}</strong>
+          <strong>{{ summary?.['totalBalance'] | money }}</strong>
         </article>
         <article class="stat-card">
           <span>{{ 'DASHBOARD.ACTIVE_OBLIGATIONS' | translate }}</span>
@@ -30,6 +33,7 @@ import { ReportsApiService } from '../../core/services/api.service';
 })
 export class UserDashboardComponent implements OnInit {
   private readonly reportsApi = inject(ReportsApiService);
+  readonly auth = inject(AuthService);
 
   summary: Record<string, string | number> | null = null;
 
@@ -44,27 +48,26 @@ export class UserDashboardComponent implements OnInit {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, RouterLink],
   template: `
     <div class="dashboard">
       <h1>{{ 'DASHBOARD.TITLE' | translate }}</h1>
-      <p class="welcome">{{ 'DASHBOARD.WELCOME' | translate }} · Admin</p>
+      <p class="welcome">{{ 'DASHBOARD.WELCOME' | translate:{ name: auth.displayName() } }}</p>
 
       <div class="stats-grid">
-        <article class="stat-card accent">
+        <a routerLink="/admin/banks" class="stat-card accent">
           <span>{{ 'NAV.BANKS' | translate }}</span>
-          <strong>Admin</strong>
-        </article>
-        <article class="stat-card accent">
+        </a>
+        <a routerLink="/admin/companies" class="stat-card accent">
           <span>{{ 'NAV.COMPANIES' | translate }}</span>
-          <strong>Admin</strong>
-        </article>
-        <article class="stat-card accent">
+        </a>
+        <a routerLink="/admin/correspondents" class="stat-card accent">
           <span>{{ 'NAV.CORRESPONDENTS' | translate }}</span>
-          <strong>Admin</strong>
-        </article>
+        </a>
       </div>
     </div>
   `,
 })
-export class AdminDashboardComponent {}
+export class AdminDashboardComponent {
+  readonly auth = inject(AuthService);
+}
