@@ -57,7 +57,7 @@ import { SearchSelectComponent, SearchSelectOption } from '../../shared/componen
                 <tr>
                   <td>{{ item.accountNumber }}</td>
                   <td>{{ item | localizedField:'correspondentNameEn':'correspondentNameAr' }}</td>
-                  <td>{{ currencyName(item) }}</td>
+                  <td>{{ currencySymbol(item) }}</td>
                   <td class="money">{{ item.currentBalance | money }}</td>
                   <td>
                     <a [routerLink]="['/admin/accounts/edit', item.correspondentAccountId]" class="btn-icon">✎</a>
@@ -84,16 +84,9 @@ export class AccountListComponent implements OnInit {
 
   ngOnInit(): void { this.load(); }
 
-  currencyName(item: CorrespondentAccount): string {
-    const fromAccount = this.localized.transform(item, 'currencyNameEn', 'currencyNameAr');
-    if (fromAccount) {
-      return fromAccount;
-    }
-
+  currencySymbol(item: CorrespondentAccount): string {
     const currency = this.currencies().find((c) => c.currencyId === item.currencyId);
-    return currency
-      ? this.localized.transform(currency, 'currencyNameEn', 'currencyNameAr')
-      : item.currencyCode;
+    return currency?.symbol || item.currencyCode || '';
   }
 
   confirmDelete(item: CorrespondentAccount): void {
@@ -175,7 +168,7 @@ export class AccountFormComponent implements OnInit {
   currencyOptions(): SearchSelectOption[] {
     return this.currencies().map((item) => ({
       value: item.currencyId,
-      label: this.localized.transform(item, 'currencyNameEn', 'currencyNameAr') || item.currencyCode,
+      label: item.symbol || item.currencyCode,
     }));
   }
 
