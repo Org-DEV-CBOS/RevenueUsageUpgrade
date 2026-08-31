@@ -29,6 +29,9 @@
     "ERROR": "حدث خطأ",
     "CODE": "الرمز"
   },
+  "VALIDATION": {
+    "MIN_VALUE": "يجب أن تكون القيمة {{min}} على الأقل"
+  },
   "AUTH": {
     "LOGIN": "تسجيل الدخول",
     "LOGOUT": "تسجيل الخروج",
@@ -64,7 +67,8 @@
     "BALANCES": "الأرصدة",
     "FOREIGN_RESERVE": "الاحتياطي الأجنبي",
     "COUNTRIES": "الدول",
-    "BENEFICIARIES": "المستفيدون"
+    "BENEFICIARIES": "المستفيدون",
+    "EXCHANGE_RATES": "أسعار الصرف"
   },
   "BANKS": {
     "TITLE": "البنوك المراسلة",
@@ -107,7 +111,14 @@
     "ADD": "+ إضافة حساب",
     "NUMBER": "رقم الحساب",
     "BALANCE": "الرصيد الحالي",
-    "OPENING_BALANCE": "الرصيد الافتتاحي"
+    "OPENING_BALANCE": "الرصيد الافتتاحي",
+    "DUPLICATE_NUMBER": "رقم الحساب موجود مسبقاً لهذا المراسل",
+    "CURRENCY_TAKEN": "يوجد حساب بالفعل لهذا المراسل بهذه العملة"
+  },
+  "EXCHANGE_RATES": {
+    "FROM_CURRENCY": "من العملة",
+    "TO_CURRENCY": "إلى العملة",
+    "RATE": "السعر"
   },
   "BENEFICIARIES": {
     "TITLE": "المستفيدون",
@@ -118,7 +129,11 @@
   },
   "CURRENCIES": {
     "ADD": "+ إضافة عملة",
-    "SYMBOL": "الرمز",
+    "NAME": "اسم العملة",
+    "NAME_EN": "اسم العملة (إنجليزي)",
+    "NAME_AR": "اسم العملة (عربي)",
+    "SHORT_NAME": "الاسم المختصر",
+    "SYMBOL": "الاسم المختصر",
     "DECIMALS": "الخانات العشرية"
   },
   "RESOURCES": {

@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
@@ -20,9 +20,11 @@ import {
 } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { extractHttpError } from '../../core/utils/http-error.util';
+import { getFieldError, markFormTouched } from '../../core/utils/form-errors.util';
 import { generateEntityCode } from '../../core/utils/generate-code';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 import { MoneyPipe } from '../../shared/pipes/money.pipe';
+import { MoneyInputComponent } from '../../shared/components/money-input/money-input.component';
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { ConfirmService } from '../../core/services/confirm.service';
@@ -143,7 +145,7 @@ export class AccountListComponent implements OnInit {
 @Component({
   selector: 'app-account-form',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, RouterLink, SearchSelectComponent],
+  imports: [ReactiveFormsModule, TranslatePipe, RouterLink, SearchSelectComponent, MoneyInputComponent],
   providers: [LocalizedFieldPipe],
   template: `
     <div class="page">
@@ -153,19 +155,39 @@ export class AccountListComponent implements OnInit {
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
       <form class="form-panel" [formGroup]="form" (ngSubmit)="save()">
-        <label>{{ 'NAV.CORRESPONDENTS' | translate }} *
+        <label [class.invalid]="isInvalid('correspondentId')">
+          {{ 'NAV.CORRESPONDENTS' | translate }} *
           <app-search-select formControlName="correspondentId" [options]="correspondentOptions()" />
+          @if (fieldError('correspondentId'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
         </label>
-        <label>{{ 'NAV.CURRENCIES' | translate }} *
+        <label [class.invalid]="isInvalid('currencyId')">
+          {{ 'NAV.CURRENCIES' | translate }} *
           <app-search-select formControlName="currencyId" [options]="currencyOptions()" />
+          @if (fieldError('currencyId'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
         </label>
-        <label>{{ 'ACCOUNTS.NUMBER' | translate }} *<input formControlName="accountNumber" /></label>
-        <label>{{ 'ACCOUNTS.OPENING_BALANCE' | translate }} *<input type="number" step="0.01" formControlName="openingBalance" /></label>
+        <label [class.invalid]="isInvalid('accountNumber')">
+          {{ 'ACCOUNTS.NUMBER' | translate }} *
+          <input formControlName="accountNumber" />
+          @if (fieldError('accountNumber'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+        <label [class.invalid]="isInvalid('openingBalance')">
+          {{ 'ACCOUNTS.OPENING_BALANCE' | translate }} *
+          <app-money-input formControlName="openingBalance" />
+          @if (fieldError('openingBalance'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
         @if (isEdit) {
           <label class="checkbox"><input type="checkbox" formControlName="isActive" /> {{ 'COMMON.ACTIVE' | translate }}</label>
         }
         <div class="form-actions">
-          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">{{ 'COMMON.SAVE' | translate }}</button>
+          <button type="submit" class="btn-primary" [disabled]="saving()">{{ 'COMMON.SAVE' | translate }}</button>
         </div>
       </form>
     </div>
@@ -179,6 +201,7 @@ export class AccountFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly localized = inject(LocalizedFieldPipe);
+  private readonly translate = inject(TranslateService);
 
   isEdit = false;
   id = '';
@@ -186,6 +209,7 @@ export class AccountFormComponent implements OnInit {
   readonly error = signal('');
   readonly correspondents = signal<Correspondent[]>([]);
   readonly currencies = signal<Currency[]>([]);
+  readonly correspondentAccounts = signal<CorrespondentAccount[]>([]);
 
   correspondentOptions(): SearchSelectOption[] {
     return this.correspondents().map((item) => ({
@@ -195,17 +219,26 @@ export class AccountFormComponent implements OnInit {
   }
 
   currencyOptions(): SearchSelectOption[] {
-    return this.currencies().map((item) => ({
-      value: item.currencyId,
-      label: item.symbol || item.currencyCode,
-    }));
+    const selectedCurrencyId = this.form.get('currencyId')?.value;
+    const takenCurrencyIds = new Set(
+      this.correspondentAccounts()
+        .filter((account) => account.correspondentAccountId !== this.id)
+        .map((account) => account.currencyId),
+    );
+
+    return this.currencies()
+      .filter((item) => !takenCurrencyIds.has(item.currencyId) || item.currencyId === selectedCurrencyId)
+      .map((item) => ({
+        value: item.currencyId,
+        label: item.symbol || item.currencyCode,
+      }));
   }
 
   readonly form = this.fb.nonNullable.group({
     correspondentId: ['', Validators.required],
-    currencyId: ['', Validators.required],
-    accountNumber: ['', Validators.required],
-    openingBalance: [0, Validators.required],
+    currencyId: ['', [Validators.required, this.currencyTakenValidator()]],
+    accountNumber: ['', [Validators.required, this.accountNumberValidator()]],
+    openingBalance: [0, [Validators.required, Validators.min(0)]],
     isActive: [true],
   });
 
@@ -213,26 +246,52 @@ export class AccountFormComponent implements OnInit {
     this.correspondentsApi.getAll().subscribe({ next: (d) => this.correspondents.set(d), error: () => {} });
     this.currenciesApi.getAll().subscribe({ next: (d) => this.currencies.set(d), error: () => {} });
 
+    this.form.get('correspondentId')?.valueChanges.subscribe((correspondentId) => {
+      this.loadCorrespondentAccounts(correspondentId);
+      this.form.get('accountNumber')?.updateValueAndValidity();
+      this.form.get('currencyId')?.updateValueAndValidity();
+    });
+
+    this.form.get('accountNumber')?.valueChanges.subscribe(() => {
+      this.form.get('accountNumber')?.updateValueAndValidity({ emitEvent: false });
+    });
+
     const segments = this.router.url.split('/');
     const editIndex = segments.indexOf('edit');
     if (editIndex >= 0) {
       this.isEdit = true;
       this.id = segments[editIndex + 1];
       this.api.getById(this.id).subscribe({
-        next: (item) => this.form.patchValue({
-          correspondentId: item.correspondentId,
-          currencyId: item.currencyId,
-          accountNumber: item.accountNumber,
-          openingBalance: item.openingBalance,
-          isActive: item.isActive,
-        }),
+        next: (item) => {
+          this.form.patchValue({
+            correspondentId: item.correspondentId,
+            currencyId: item.currencyId,
+            accountNumber: item.accountNumber,
+            openingBalance: item.openingBalance,
+            isActive: item.isActive,
+          });
+          this.loadCorrespondentAccounts(item.correspondentId);
+        },
         error: (err) => this.error.set(extractHttpError(err)),
       });
     }
   }
 
+  fieldError(field: string): string | null {
+    return getFieldError(this.form, field, this.translate);
+  }
+
+  isInvalid(field: string): boolean {
+    const control = this.form.get(field);
+    return !!control && control.touched && control.invalid;
+  }
+
   save(): void {
-    if (this.form.invalid) return;
+    markFormTouched(this.form);
+    if (this.form.invalid) {
+      return;
+    }
+
     this.saving.set(true);
     const value = this.form.getRawValue();
     const payload = { ...value, correspondentAccountId: this.id, createdBy: SYSTEM_USER, modifiedBy: SYSTEM_USER };
@@ -241,6 +300,63 @@ export class AccountFormComponent implements OnInit {
       next: () => this.router.navigateByUrl('/admin/accounts'),
       error: (err) => { this.saving.set(false); this.error.set(extractHttpError(err)); this.toast.error(extractHttpError(err)); },
     });
+  }
+
+  private loadCorrespondentAccounts(correspondentId: string): void {
+    if (!correspondentId) {
+      this.correspondentAccounts.set([]);
+      return;
+    }
+
+    this.api.getAll({ correspondentId, activeOnly: false }).subscribe({
+      next: (accounts) => {
+        this.correspondentAccounts.set(accounts);
+        const selectedCurrencyId = this.form.get('currencyId')?.value;
+        const takenCurrencyIds = new Set(
+          accounts
+            .filter((account) => account.correspondentAccountId !== this.id)
+            .map((account) => account.currencyId),
+        );
+        if (selectedCurrencyId && takenCurrencyIds.has(selectedCurrencyId)) {
+          this.form.patchValue({ currencyId: '' });
+        }
+        this.form.get('currencyId')?.updateValueAndValidity();
+        this.form.get('accountNumber')?.updateValueAndValidity();
+      },
+      error: () => this.correspondentAccounts.set([]),
+    });
+  }
+
+  private accountNumberValidator() {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const accountNumber = String(control.value ?? '').trim();
+      if (!accountNumber) {
+        return null;
+      }
+
+      const duplicate = this.correspondentAccounts().some(
+        (account) =>
+          account.correspondentAccountId !== this.id &&
+          account.accountNumber.localeCompare(accountNumber, undefined, { sensitivity: 'accent' }) === 0,
+      );
+
+      return duplicate ? { duplicateAccountNumber: true } : null;
+    };
+  }
+
+  private currencyTakenValidator() {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const currencyId = String(control.value ?? '').trim();
+      if (!currencyId) {
+        return null;
+      }
+
+      const taken = this.correspondentAccounts().some(
+        (account) => account.correspondentAccountId !== this.id && account.currencyId === currencyId,
+      );
+
+      return taken ? { currencyTaken: true } : null;
+    };
   }
 }
 
@@ -419,14 +535,16 @@ export class BeneficiaryFormComponent implements OnInit {
         @else {
           <table class="data-table">
             <thead><tr>
-              <th>{{ 'COMMON.CODE' | translate }}</th><th>{{ 'BANKS.NAME' | translate }}</th>
-              <th>{{ 'CURRENCIES.SYMBOL' | translate }}</th><th>{{ 'COMMON.ACTIONS' | translate }}</th>
+              <th>{{ 'CURRENCIES.NAME_EN' | translate }}</th>
+              <th>{{ 'CURRENCIES.NAME_AR' | translate }}</th>
+              <th>{{ 'CURRENCIES.SHORT_NAME' | translate }}</th>
+              <th>{{ 'COMMON.ACTIONS' | translate }}</th>
             </tr></thead>
             <tbody>
               @for (item of items(); track item.currencyId) {
                 <tr>
-                  <td>{{ item.currencyCode }}</td>
-                  <td>{{ item | localizedField:'currencyNameEn':'currencyNameAr' }}</td>
+                  <td>{{ item.currencyNameEn }}</td>
+                  <td>{{ item.currencyNameAr }}</td>
                   <td>{{ item.symbol }}</td>
                   <td>
                     <a [routerLink]="['/admin/currencies/edit', item.currencyId]" class="btn-icon">✎</a>

@@ -6,6 +6,11 @@ public interface ILookupRepository
 {
     // Banks
     Task<IEnumerable<Bank>> GetAllBanksAsync(CancellationToken cancellationToken = default);
+    Task<(IEnumerable<Bank> Items, int TotalCount)> GetBanksPagedAsync(
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
     Task<Bank?> GetBankByIdAsync(Guid bankId, CancellationToken cancellationToken = default);
     Task<Guid> CreateBankAsync(Bank bank, CancellationToken cancellationToken = default);
     Task UpdateBankAsync(Bank bank, CancellationToken cancellationToken = default);

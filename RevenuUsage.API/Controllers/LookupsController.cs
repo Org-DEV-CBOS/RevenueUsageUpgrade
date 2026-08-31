@@ -13,6 +13,7 @@ using RevenuUsage.Application.Features.Lookups.Commands.UpdateBank;
 using RevenuUsage.Application.Features.Lookups.Commands.UpdateCompany;
 using RevenuUsage.Application.Features.Lookups.Commands.UpdateCountry;
 using RevenuUsage.Application.Features.Lookups.Queries.GetAllBanks;
+using RevenuUsage.Application.Features.Lookups.Queries.GetBanksPaged;
 using RevenuUsage.Application.Features.Lookups.Queries.GetAllCompanies;
 using RevenuUsage.Application.Features.Lookups.Queries.GetAllCountries;
 using RevenuUsage.Application.Features.Lookups.Queries.GetBankById;
@@ -49,9 +50,13 @@ public class LookupsController : ControllerBase
         [FromQuery] string? search = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetAllBanksQuery(), cancellationToken);
-        var items = Paging.Search(result, search, b => [b.BankNameEn, b.BankNameAr, b.ShortName, b.BankCode]);
-        return Ok(Paging.Create(items, page, pageSize, pageNumber));
+        if (pageNumber > 0)
+        {
+            page = pageNumber;
+        }
+
+        var result = await _mediator.Send(new GetBanksPagedQuery(page, pageSize, search), cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>

@@ -5,6 +5,7 @@ public sealed record ExchangeRateDto(
     DateTime RateDate,
     Guid FromCurrencyId,
     string FromCurrencyCode,
+    string FromCurrencySymbol,
     string FromCurrencyNameAr,
     string FromCurrencyNameEn,
     Guid ToCurrencyId,

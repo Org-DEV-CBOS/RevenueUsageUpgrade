@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetDebitMovements
+CREATE OR ALTER PROCEDURE dbo.uspGetDebitMovements
     @StartDate date,
     @EndDate date,
     @SearchValue nvarchar(200) = NULL

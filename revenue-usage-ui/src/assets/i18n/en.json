@@ -29,6 +29,9 @@
     "ERROR": "An error occurred",
     "CODE": "Code"
   },
+  "VALIDATION": {
+    "MIN_VALUE": "Value must be at least {{min}}"
+  },
   "AUTH": {
     "LOGIN": "Sign in",
     "LOGOUT": "Sign out",
@@ -58,7 +61,8 @@
     "BALANCES": "Balances",
     "FOREIGN_RESERVE": "Foreign Reserve",
     "COUNTRIES": "Countries",
-    "BENEFICIARIES": "Beneficiaries"
+    "BENEFICIARIES": "Beneficiaries",
+    "EXCHANGE_RATES": "Exchange Rates"
   },
   "BANKS": {
     "TITLE": "Remitting Banks",
@@ -101,7 +105,14 @@
     "ADD": "+ Add Account",
     "NUMBER": "Account Number",
     "BALANCE": "Current Balance",
-    "OPENING_BALANCE": "Opening Balance"
+    "OPENING_BALANCE": "Opening Balance",
+    "DUPLICATE_NUMBER": "This account number already exists for the selected correspondent",
+    "CURRENCY_TAKEN": "This correspondent already has an account for the selected currency"
+  },
+  "EXCHANGE_RATES": {
+    "FROM_CURRENCY": "From Currency",
+    "TO_CURRENCY": "To Currency",
+    "RATE": "Rate"
   },
   "BENEFICIARIES": {
     "TITLE": "Beneficiaries",
@@ -112,7 +123,11 @@
   },
   "CURRENCIES": {
     "ADD": "+ Add Currency",
-    "SYMBOL": "Symbol",
+    "NAME": "Currency Name",
+    "NAME_EN": "Currency Name (English)",
+    "NAME_AR": "Currency Name (Arabic)",
+    "SHORT_NAME": "Short Name",
+    "SYMBOL": "Short Name",
     "DECIMALS": "Decimal Places"
   },
   "RESOURCES": {

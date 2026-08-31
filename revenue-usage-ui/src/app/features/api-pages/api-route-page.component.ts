@@ -17,10 +17,19 @@ import {
 } from '../../core/services/api.service';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { extractHttpError } from '../../core/utils/http-error.util';
+import { LanguageService } from '../../core/services/language.service';
+
+export interface ApiPageColumn {
+  key: string;
+  label: string;
+  format?: 'money' | 'rate' | 'localizedField';
+  enKey?: string;
+  arKey?: string;
+}
 
 export interface ApiPageConfig {
   titleKey: string;
-  columns: { key: string; label: string }[];
+  columns: ApiPageColumn[];
   endpoint: string;
 }
 
@@ -57,7 +66,7 @@ export interface ApiPageConfig {
                 @for (row of rows(); track $index) {
                   <tr>
                     @for (column of config?.columns ?? []; track column.key) {
-                      <td>{{ formatCell(row, column.key) }}</td>
+                      <td>{{ formatCell(row, column) }}</td>
                     }
                   </tr>
                 }
@@ -89,6 +98,7 @@ export class ApiRoutePageComponent implements OnInit {
   private readonly coveragesApi = inject(CoveragesApiService);
   private readonly reservesApi = inject(ReservesApiService);
   private readonly reportsApi = inject(ReportsApiService);
+  private readonly language = inject(LanguageService);
 
   config: ApiPageConfig | null = null;
   readonly loading = signal(false);
@@ -138,13 +148,33 @@ export class ApiRoutePageComponent implements OnInit {
     });
   }
 
-  formatCell(row: Record<string, unknown>, key: string): string {
+  formatCell(row: Record<string, unknown>, column: ApiPageColumn): string {
+    if (column.format === 'localizedField') {
+      const enKey = column.enKey ?? '';
+      const arKey = column.arKey ?? '';
+      const isArabic = this.language.currentLanguage() === 'ar';
+      const primary = String(row[isArabic ? arKey : enKey] ?? '').trim();
+      const fallback = String(row[isArabic ? enKey : arKey] ?? '').trim();
+      return primary || fallback;
+    }
+
+    const key = column.key;
     const value = row[key];
     if (value === null || value === undefined) {
       return '';
     }
 
-    if (/(balance|amount)/i.test(key)) {
+    if (column.format === 'rate') {
+      const amount = Number(value);
+      if (Number.isFinite(amount)) {
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 5,
+          maximumFractionDigits: 5,
+        }).format(amount);
+      }
+    }
+
+    if (column.format === 'money' || /(balance|amount)/i.test(key)) {
       const amount = Number(value);
       if (Number.isFinite(amount)) {
         return new Intl.NumberFormat('en-US', {
@@ -263,10 +293,9 @@ export const API_PAGE_CONFIGS = {
     titleKey: 'NAV.CURRENCIES',
     endpoint: 'currencies',
     columns: [
-      { key: 'currencyCode', label: 'COMMON.CODE' },
-      { key: 'currencyNameEn', label: 'BANKS.NAME_EN' },
-      { key: 'currencyNameAr', label: 'BANKS.NAME_AR' },
-      { key: 'symbol', label: 'BANKS.SHORT_NAME' },
+      { key: 'currencyNameEn', label: 'CURRENCIES.NAME_EN' },
+      { key: 'currencyNameAr', label: 'CURRENCIES.NAME_AR' },
+      { key: 'symbol', label: 'CURRENCIES.SHORT_NAME' },
       { key: 'isActive', label: 'COMMON.ACTIVE' },
     ],
   },
@@ -315,13 +344,14 @@ export const API_PAGE_CONFIGS = {
     ],
   },
   exchangeRates: {
-    titleKey: 'NAV.CURRENCIES',
+    titleKey: 'NAV.EXCHANGE_RATES',
     endpoint: 'currency-exchange-rates',
     columns: [
       { key: 'rateDate', label: 'TRANSFERS.DATE' },
-      { key: 'fromCurrencyCode', label: 'NAV.CURRENCIES' },
-      { key: 'toCurrencyCode', label: 'NAV.CURRENCIES' },
-      { key: 'rateValue', label: 'TRANSFERS.AMOUNT' },
+      { key: 'fromCurrencyNameEn', label: 'CURRENCIES.NAME_EN' },
+      { key: 'fromCurrencyNameAr', label: 'CURRENCIES.NAME_AR' },
+      { key: 'fromCurrencySymbol', label: 'CURRENCIES.SHORT_NAME' },
+      { key: 'rateValue', label: 'EXCHANGE_RATES.RATE', format: 'rate' },
     ],
   },
   correspondentBalances: {

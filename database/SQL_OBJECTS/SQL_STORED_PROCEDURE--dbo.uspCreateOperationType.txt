@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspCreateOperationType
+CREATE OR ALTER PROCEDURE dbo.uspCreateOperationType
     @OperationTypeCode nvarchar(50),
     @OperationTypeNameEn nvarchar(100),
     @OperationTypeNameAr nvarchar(100) = NULL,

@@ -1,1 +1,48 @@
-CREATE PROCEDURE dbo.uspCreateCorrespondentAccount @CorrespondentId uniqueidentifier,@CurrencyId uniqueidentifier,@AccountNumber nvarchar(100),@OpeningBalance decimal(19,4),@CreatedBy nvarchar(100)=NULL,@CorrespondentAccountId uniqueidentifier OUTPUT AS BEGIN SET @CorrespondentAccountId=NEWID();INSERT dbo.CorrespondentAccounts(CorrespondentAccountId,CorrespondentId,CurrencyId,AccountNumber,OpeningBalance,CurrentBalance,CreatedBy)VALUES(@CorrespondentAccountId,@CorrespondentId,@CurrencyId,@AccountNumber,@OpeningBalance,@OpeningBalance,@CreatedBy);END;
+CREATE OR ALTER PROCEDURE dbo.uspCreateCorrespondentAccount
+    @CorrespondentId uniqueidentifier,
+    @CurrencyId uniqueidentifier,
+    @AccountNumber nvarchar(100),
+    @OpeningBalance decimal(19,4),
+    @CreatedBy nvarchar(100) = NULL,
+    @CorrespondentAccountId uniqueidentifier OUTPUT
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.CorrespondentAccounts
+        WHERE CorrespondentId = @CorrespondentId
+          AND CurrencyId = @CurrencyId
+          AND IsDeleted = 0
+    )
+        THROW 51007, 'Correspondent already has an account for this currency.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.CorrespondentAccounts
+        WHERE CorrespondentId = @CorrespondentId
+          AND AccountNumber = @AccountNumber
+          AND IsDeleted = 0
+    )
+        THROW 51008, 'Account number already exists for this correspondent.', 1;
+
+    SET @CorrespondentAccountId = NEWID();
+
+    INSERT dbo.CorrespondentAccounts (
+        CorrespondentAccountId,
+        CorrespondentId,
+        CurrencyId,
+        AccountNumber,
+        OpeningBalance,
+        CurrentBalance,
+        CreatedBy
+    )
+    VALUES (
+        @CorrespondentAccountId,
+        @CorrespondentId,
+        @CurrencyId,
+        @AccountNumber,
+        @OpeningBalance,
+        @OpeningBalance,
+        @CreatedBy
+    );
+END;

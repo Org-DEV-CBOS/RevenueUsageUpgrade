@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspCreateUsageType
+CREATE OR ALTER PROCEDURE dbo.uspCreateUsageType
     @UsageTypeCode nvarchar(50),
     @UsageTypeNameEn nvarchar(100),
     @UsageTypeNameAr nvarchar(100) = NULL,

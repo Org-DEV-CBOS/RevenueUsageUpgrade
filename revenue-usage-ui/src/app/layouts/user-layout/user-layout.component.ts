@@ -46,6 +46,7 @@ export class UserLayoutComponent {
     { labelKey: 'NAV.TRANSACTIONS', icon: '💸', route: '/app/transfers' },
     { labelKey: 'NAV.OBLIGATIONS', icon: '📋', route: '/app/obligations' },
     { labelKey: 'NAV.CURRENCIES', icon: '💱', route: '/app/currencies' },
+    { labelKey: 'NAV.EXCHANGE_RATES', icon: '💹', route: '/app/exchange-rates' },
     { labelKey: 'NAV.DEALING', icon: '📈', route: '/app/deals' },
     { labelKey: 'NAV.REPLENISHMENTS', icon: '🔄', route: '/app/coverages' },
     { labelKey: 'NAV.GOLD_AND_CASH', icon: '🥇', route: '/app/reserves' },

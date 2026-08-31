@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetObligations
+CREATE OR ALTER PROCEDURE dbo.uspGetObligations
     @ActiveOnly bit = 1,
     @ClientType nvarchar(20) = NULL
 AS

@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspUpdateUsageType
+CREATE OR ALTER PROCEDURE dbo.uspUpdateUsageType
     @UsageTypeId uniqueidentifier,
     @UsageTypeCode nvarchar(50),
     @UsageTypeNameEn nvarchar(100),

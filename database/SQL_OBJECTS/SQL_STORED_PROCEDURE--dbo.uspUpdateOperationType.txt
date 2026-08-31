@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspUpdateOperationType
+CREATE OR ALTER PROCEDURE dbo.uspUpdateOperationType
     @OperationTypeId uniqueidentifier,
     @OperationTypeCode nvarchar(50),
     @OperationTypeNameEn nvarchar(100),

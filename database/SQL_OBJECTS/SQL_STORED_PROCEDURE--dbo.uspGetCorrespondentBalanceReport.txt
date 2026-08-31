@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetCorrespondentBalanceReport
+CREATE OR ALTER PROCEDURE dbo.uspGetCorrespondentBalanceReport
     @SearchValue nvarchar(200) = NULL
 AS
 SELECT

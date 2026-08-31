@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetObligationStatement
+CREATE OR ALTER PROCEDURE dbo.uspGetObligationStatement
     @ObligationId uniqueidentifier
 AS
 BEGIN

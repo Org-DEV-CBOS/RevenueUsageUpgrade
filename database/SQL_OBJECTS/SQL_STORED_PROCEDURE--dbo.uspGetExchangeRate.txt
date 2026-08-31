@@ -1,1 +1,26 @@
-CREATE PROCEDURE dbo.uspGetExchangeRate @RateDate date=NULL,@FromCurrencyId uniqueidentifier=NULL,@ToCurrencyId uniqueidentifier=NULL AS SELECT r.ExchangeRateId,r.RateDate,r.FromCurrencyId,f.CurrencyCode FromCurrencyCode,f.CurrencyNameAr FromCurrencyNameAr,f.CurrencyNameEn FromCurrencyNameEn,r.ToCurrencyId,t.CurrencyCode ToCurrencyCode,t.CurrencyNameAr ToCurrencyNameAr,t.CurrencyNameEn ToCurrencyNameEn,r.RateValue FROM dbo.ExchangeRates r JOIN dbo.Currencies f ON f.CurrencyId=r.FromCurrencyId JOIN dbo.Currencies t ON t.CurrencyId=r.ToCurrencyId WHERE r.DeletedTime IS NULL AND(@RateDate IS NULL OR r.RateDate=@RateDate)AND(@FromCurrencyId IS NULL OR r.FromCurrencyId=@FromCurrencyId)AND(@ToCurrencyId IS NULL OR r.ToCurrencyId=@ToCurrencyId)ORDER BY r.RateDate DESC;
+CREATE OR ALTER PROCEDURE dbo.uspGetExchangeRate
+    @RateDate date = NULL,
+    @FromCurrencyId uniqueidentifier = NULL,
+    @ToCurrencyId uniqueidentifier = NULL
+AS
+SELECT
+    r.ExchangeRateId,
+    r.RateDate,
+    r.FromCurrencyId,
+    f.CurrencyCode AS FromCurrencyCode,
+    f.Symbol AS FromCurrencySymbol,
+    f.CurrencyNameAr AS FromCurrencyNameAr,
+    f.CurrencyNameEn AS FromCurrencyNameEn,
+    r.ToCurrencyId,
+    t.CurrencyCode AS ToCurrencyCode,
+    t.CurrencyNameAr AS ToCurrencyNameAr,
+    t.CurrencyNameEn AS ToCurrencyNameEn,
+    r.RateValue
+FROM dbo.ExchangeRates r
+JOIN dbo.Currencies f ON f.CurrencyId = r.FromCurrencyId
+JOIN dbo.Currencies t ON t.CurrencyId = r.ToCurrencyId
+WHERE r.DeletedTime IS NULL
+  AND (@RateDate IS NULL OR r.RateDate = @RateDate)
+  AND (@FromCurrencyId IS NULL OR r.FromCurrencyId = @FromCurrencyId)
+  AND (@ToCurrencyId IS NULL OR r.ToCurrencyId = @ToCurrencyId)
+ORDER BY r.RateDate DESC;

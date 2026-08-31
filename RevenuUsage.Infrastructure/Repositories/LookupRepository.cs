@@ -33,6 +33,46 @@ public class LookupRepository : ILookupRepository
         return result;
     }
 
+    public async Task<(IEnumerable<Bank> Items, int TotalCount)> GetBanksPagedAsync(
+        string? search,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        if (_connection.State != ConnectionState.Open)
+            _connection.Open();
+
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, 500);
+        var offset = (page - 1) * pageSize;
+        var searchTerm = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%";
+
+        const string whereClause = @"WHERE isDeleted = 0
+            AND (
+                @Search IS NULL
+                OR bankNameEn LIKE @Search
+                OR bankNameAr LIKE @Search
+                OR shortName LIKE @Search
+                OR CAST(bankCode AS nvarchar(20)) LIKE @Search
+            )";
+
+        var countSql = $"SELECT COUNT(*) FROM dbo.banks {whereClause}";
+        var totalCount = await _connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(countSql, new { Search = searchTerm }, cancellationToken: cancellationToken));
+
+        var itemsSql = $@"SELECT bankId, bankCode, bankNameEn, bankNameAr, shortName, isActive, isDeleted,
+                                 createdTime, createdBy, modifiedTime, modifiedBy, deletedTime, deletedBy
+                          FROM dbo.banks
+                          {whereClause}
+                          ORDER BY bankNameAr
+                          OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+
+        var items = await _connection.QueryAsync<Bank>(
+            new CommandDefinition(itemsSql, new { Search = searchTerm, Offset = offset, PageSize = pageSize }, cancellationToken: cancellationToken));
+
+        return (items, totalCount);
+    }
+
     public async Task<Bank?> GetBankByIdAsync(Guid bankId, CancellationToken cancellationToken = default)
     {
         if (_connection.State != ConnectionState.Open)

@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspDeleteOperationType
+CREATE OR ALTER PROCEDURE dbo.uspDeleteOperationType
     @OperationTypeId uniqueidentifier,
     @DeletedBy nvarchar(100) = NULL
 AS

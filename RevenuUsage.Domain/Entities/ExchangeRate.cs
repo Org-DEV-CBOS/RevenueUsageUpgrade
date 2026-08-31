@@ -6,6 +6,7 @@ public class ExchangeRate
     public DateTime RateDate { get; set; }
     public Guid FromCurrencyId { get; set; }
     public string FromCurrencyCode { get; set; } = string.Empty;
+    public string FromCurrencySymbol { get; set; } = string.Empty;
     public string FromCurrencyNameAr { get; set; } = string.Empty;
     public string FromCurrencyNameEn { get; set; } = string.Empty;
     public Guid ToCurrencyId { get; set; }

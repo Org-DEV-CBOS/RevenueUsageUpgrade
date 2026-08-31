@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetResourcesReport
+CREATE OR ALTER PROCEDURE dbo.uspGetResourcesReport
     @StartDate date = NULL,
     @EndDate date = NULL
 AS

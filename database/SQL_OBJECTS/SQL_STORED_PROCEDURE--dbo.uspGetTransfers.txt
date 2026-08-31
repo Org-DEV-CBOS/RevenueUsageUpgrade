@@ -1,4 +1,4 @@
-CREATE PROCEDURE dbo.uspGetTransfers
+CREATE OR ALTER PROCEDURE dbo.uspGetTransfers
     @CorrespondentAccountId uniqueidentifier = NULL,
     @BeneficiaryId uniqueidentifier = NULL,
     @CurrencyId uniqueidentifier = NULL,

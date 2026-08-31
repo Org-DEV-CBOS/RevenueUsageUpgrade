@@ -57,6 +57,7 @@ export const routes: Routes = [
       { path: 'transfers', component: TransferListComponent },
       apiRoute('obligations', 'obligations'),
       apiRoute('currencies', 'currencies'),
+      apiRoute('exchange-rates', 'exchangeRates'),
       apiRoute('deals', 'deals'),
       apiRoute('coverages', 'coverages'),
       apiRoute('reserves', 'reserves'),

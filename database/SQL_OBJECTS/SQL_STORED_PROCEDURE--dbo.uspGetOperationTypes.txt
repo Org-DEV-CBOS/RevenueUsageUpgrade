@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetOperationTypes
+CREATE OR ALTER PROCEDURE dbo.uspGetOperationTypes
     @ActiveOnly bit = 1
 AS
 BEGIN

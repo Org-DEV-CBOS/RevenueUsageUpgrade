@@ -1,1 +1,56 @@
-CREATE PROCEDURE dbo.uspUpdateCorrespondentAccount @CorrespondentAccountId uniqueidentifier,@CorrespondentId uniqueidentifier,@CurrencyId uniqueidentifier,@AccountNumber nvarchar(100),@OpeningBalance decimal(19,4),@IsActive bit,@ModifiedBy nvarchar(100)=NULL AS BEGIN IF EXISTS(SELECT 1 FROM dbo.Resources WHERE CorrespondentAccountId=@CorrespondentAccountId AND DeletedTime IS NULL) AND EXISTS(SELECT 1 FROM dbo.CorrespondentAccounts WHERE CorrespondentAccountId=@CorrespondentAccountId AND CurrencyId<>@CurrencyId) THROW 51005,'Cannot change currency after movements.',1;UPDATE dbo.CorrespondentAccounts SET CorrespondentId=@CorrespondentId,CurrencyId=@CurrencyId,AccountNumber=@AccountNumber,CurrentBalance=CurrentBalance+(@OpeningBalance-OpeningBalance),OpeningBalance=@OpeningBalance,IsActive=@IsActive,ModifiedTime=SYSUTCDATETIME(),ModifiedBy=@ModifiedBy WHERE CorrespondentAccountId=@CorrespondentAccountId AND IsDeleted=0;END;
+CREATE OR ALTER PROCEDURE dbo.uspUpdateCorrespondentAccount
+    @CorrespondentAccountId uniqueidentifier,
+    @CorrespondentId uniqueidentifier,
+    @CurrencyId uniqueidentifier,
+    @AccountNumber nvarchar(100),
+    @OpeningBalance decimal(19,4),
+    @IsActive bit,
+    @ModifiedBy nvarchar(100) = NULL
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.Resources
+        WHERE CorrespondentAccountId = @CorrespondentAccountId
+          AND DeletedTime IS NULL
+    )
+        AND EXISTS (
+            SELECT 1
+            FROM dbo.CorrespondentAccounts
+            WHERE CorrespondentAccountId = @CorrespondentAccountId
+              AND CurrencyId <> @CurrencyId
+        )
+        THROW 51005, 'Cannot change currency after movements.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.CorrespondentAccounts
+        WHERE CorrespondentId = @CorrespondentId
+          AND CurrencyId = @CurrencyId
+          AND IsDeleted = 0
+          AND CorrespondentAccountId <> @CorrespondentAccountId
+    )
+        THROW 51007, 'Correspondent already has an account for this currency.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.CorrespondentAccounts
+        WHERE CorrespondentId = @CorrespondentId
+          AND AccountNumber = @AccountNumber
+          AND IsDeleted = 0
+          AND CorrespondentAccountId <> @CorrespondentAccountId
+    )
+        THROW 51008, 'Account number already exists for this correspondent.', 1;
+
+    UPDATE dbo.CorrespondentAccounts
+    SET CorrespondentId = @CorrespondentId,
+        CurrencyId = @CurrencyId,
+        AccountNumber = @AccountNumber,
+        CurrentBalance = CurrentBalance + (@OpeningBalance - OpeningBalance),
+        OpeningBalance = @OpeningBalance,
+        IsActive = @IsActive,
+        ModifiedTime = SYSUTCDATETIME(),
+        ModifiedBy = @ModifiedBy
+    WHERE CorrespondentAccountId = @CorrespondentAccountId
+      AND IsDeleted = 0;
+END;

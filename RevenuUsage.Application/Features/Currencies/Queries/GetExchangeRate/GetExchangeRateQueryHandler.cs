@@ -26,6 +26,7 @@ public sealed class GetExchangeRateQueryHandler : IQueryHandler<GetExchangeRateQ
             er.RateDate,
             er.FromCurrencyId,
             er.FromCurrencyCode,
+            er.FromCurrencySymbol,
             er.FromCurrencyNameAr,
             er.FromCurrencyNameEn,
             er.ToCurrencyId,

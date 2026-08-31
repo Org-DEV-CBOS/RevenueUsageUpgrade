@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetCreditMovements
+CREATE OR ALTER PROCEDURE dbo.uspGetCreditMovements
     @StartDate date,
     @EndDate date,
     @SearchValue nvarchar(200) = NULL

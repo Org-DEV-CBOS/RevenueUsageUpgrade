@@ -1,5 +1,5 @@
 
-CREATE PROCEDURE dbo.uspGetObligationReport
+CREATE OR ALTER PROCEDURE dbo.uspGetObligationReport
     @StartDate date = NULL,
     @EndDate date = NULL,
     @Status nvarchar(20) = NULL,

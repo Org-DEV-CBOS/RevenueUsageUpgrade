@@ -5,7 +5,9 @@ export_sql_objects.py) into a SQL Server database.
 
 Reads files named:  ObjectType--Schema.ObjectName.txt
 from a folder, and for SQL_STORED_PROCEDURE and VIEW files only,
-runs CREATE OR ALTER against the target database.
+drops the existing object then CREATE's it (two batches). This works on
+SQL Server versions that do not support CREATE OR ALTER, and keeps
+CREATE PROCEDURE/VIEW as the first statement in its batch.
 
 Requires: pyodbc  (pip install pyodbc)
 Also requires an installed ODBC driver for SQL Server.
@@ -53,13 +55,16 @@ def pick_driver():
     sys.exit(1)
 
 
-def to_create_or_alter(definition: str, keyword: str) -> str:
+def bracket(ident: str) -> str:
+    return "[" + ident.replace("]", "]]") + "]"
+
+
+def to_create_statement(definition: str, keyword: str) -> str:
     """
-    Rewrite the leading CREATE PROCEDURE/PROC/VIEW statement (optionally already
-    ALTER, or CREATE OR ALTER) into a CREATE OR ALTER statement, preserving
-    everything else in the definition (including comments before it, WITH
-    options, AS body, etc).
+    Return a CREATE PROCEDURE/VIEW batch: strip BOM and any leading text so
+    CREATE is the first statement, and rewrite CREATE OR ALTER / ALTER to CREATE.
     """
+    definition = definition.lstrip("\ufeff")
     if keyword == "PROCEDURE":
         obj_kw = r"PROC(?:EDURE)?"
     else:
@@ -74,7 +79,15 @@ def to_create_or_alter(definition: str, keyword: str) -> str:
     if not match:
         raise ValueError(f"Could not find a CREATE/ALTER {keyword} statement in the definition")
 
-    return pattern.sub(rf"CREATE OR ALTER\2", definition, count=1)
+    return "CREATE" + match.group(2) + definition[match.end():]
+
+
+def drop_object_sql(keyword: str, schema: str, name: str) -> str:
+    type_code = "P" if keyword == "PROCEDURE" else "V"
+    return (
+        f"IF OBJECT_ID(N'{schema}.{name}', N'{type_code}') IS NOT NULL "
+        f"DROP {keyword} {bracket(schema)}.{bracket(name)};"
+    )
 
 
 def build_dependency_order(candidates, definitions):
@@ -237,10 +250,10 @@ def main():
         conn.close()
         return
 
-    # Read all definitions up front (needed for both dependency analysis and CREATE OR ALTER rewrite)
+    # Read all definitions up front (needed for both dependency analysis and CREATE rewrite)
     definitions = {}
     for fname, obj_type, schema, name in candidates:
-        with open(os.path.join(folder, fname), "r", encoding="utf-8") as f:
+        with open(os.path.join(folder, fname), "r", encoding="utf-8-sig") as f:
             definitions[fname] = f.read()
 
     print("\nAnalyzing dependencies between objects...")
@@ -257,10 +270,11 @@ def main():
         keyword = ALLOWED_TYPES[obj_type]
         definition = definitions[fname]
         try:
-            sql = to_create_or_alter(definition, keyword)
+            sql = to_create_statement(definition, keyword)
         except ValueError as e:
             return False, str(e)
         try:
+            cursor.execute(drop_object_sql(keyword, schema, name))
             cursor.execute(sql)
             return True, None
         except pyodbc.Error as e:

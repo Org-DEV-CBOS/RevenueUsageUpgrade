@@ -1,4 +1,4 @@
-CREATE PROCEDURE dbo.uspGetDashboardSummary
+CREATE OR ALTER PROCEDURE dbo.uspGetDashboardSummary
     @AsOfDate date
 AS
 BEGIN

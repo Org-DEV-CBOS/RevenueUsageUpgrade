@@ -1,1 +1,1 @@
-CREATE PROCEDURE dbo.uspDeleteReserveSnapshot @ReserveSnapshotId uniqueidentifier,@DeletedBy nvarchar(100) AS UPDATE dbo.ReserveSnapshots SET DeletedTime=SYSUTCDATETIME(),DeletedBy=@DeletedBy WHERE ReserveSnapshotId=@ReserveSnapshotId AND DeletedTime IS NULL;
+CREATE OR ALTER PROCEDURE dbo.uspDeleteReserveSnapshot @ReserveSnapshotId uniqueidentifier,@DeletedBy nvarchar(100) AS UPDATE dbo.ReserveSnapshots SET DeletedTime=SYSUTCDATETIME(),DeletedBy=@DeletedBy WHERE ReserveSnapshotId=@ReserveSnapshotId AND DeletedTime IS NULL;
