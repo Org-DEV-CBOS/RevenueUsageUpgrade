@@ -15,6 +15,7 @@ import {
   ResourcesApiService,
   TransfersApiService,
 } from '../../core/services/api.service';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { extractHttpError } from '../../core/utils/http-error.util';
 
 export interface ApiPageConfig {
@@ -26,7 +27,7 @@ export interface ApiPageConfig {
 @Component({
   selector: 'app-api-route-page',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -65,6 +66,13 @@ export interface ApiPageConfig {
           </div>
         }
       </div>
+      <app-pagination
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
@@ -86,9 +94,23 @@ export class ApiRoutePageComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly rows = signal<Record<string, unknown>[]>([]);
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
 
   ngOnInit(): void {
     this.config = this.route.snapshot.data['apiPage'] as ApiPageConfig;
+    this.load();
+  }
+
+  goToPage(page: number): void {
+    this.page.set(page);
+    this.load();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
+    this.page.set(1);
     this.load();
   }
 
@@ -104,8 +126,9 @@ export class ApiRoutePageComponent implements OnInit {
 
     request.subscribe({
       next: (data) => {
-        const items = this.normalizeRows(data);
-        this.rows.set(items);
+        const paged = this.asPaged(data);
+        this.rows.set(paged.items);
+        this.totalCount.set(paged.totalCount);
         this.loading.set(false);
       },
       error: (err) => {
@@ -143,59 +166,64 @@ export class ApiRoutePageComponent implements OnInit {
   }
 
   private resolveRequest(): Observable<unknown> | null {
+    const page = this.page();
+    const pageSize = this.pageSize();
     switch (this.config?.endpoint) {
       case 'correspondents':
-        return this.correspondentsApi.getAll();
+        return this.correspondentsApi.getPaged({ page, pageSize });
       case 'accounts':
-        return this.accountsApi.getAll();
+        return this.accountsApi.getPaged({ page, pageSize });
       case 'beneficiaries':
-        return this.beneficiariesApi.getAll();
+        return this.beneficiariesApi.getPaged({ page, pageSize });
       case 'currencies':
-        return this.currenciesApi.getAll();
+        return this.currenciesApi.getPaged({ page, pageSize });
       case 'currency-balances':
-        return this.currenciesApi.getBalances();
+        return this.currenciesApi.getBalances({ page, pageSize });
       case 'currency-exchange-rates':
-        return this.currenciesApi.getExchangeRates();
+        return this.currenciesApi.getExchangeRates({ page, pageSize });
       case 'currency-correspondent-balances':
-        return this.currenciesApi.getCorrespondentBalances();
+        return this.currenciesApi.getCorrespondentBalances({ page, pageSize });
       case 'obligations':
-        return this.obligationsApi.getAll();
+        return this.obligationsApi.getPaged({ page, pageSize });
       case 'resource-types':
-        return this.resourcesApi.getTypes();
+        return this.resourcesApi.getTypesPaged({ page, pageSize });
       case 'deals':
-        return this.dealsApi.getAll();
+        return this.dealsApi.getPaged({ page, pageSize });
       case 'coverages':
-        return this.coveragesApi.getAll();
+        return this.coveragesApi.getPaged({ page, pageSize });
       case 'reserves':
-        return this.reservesApi.getAll();
+        return this.reservesApi.getPaged({ page, pageSize });
       case 'transfers':
-        return this.transfersApi.getTransfers({ pageNumber: 1, pageSize: 50 });
+        return this.transfersApi.getTransfers({ page, pageSize });
       case 'report-obligations':
-        return this.reportsApi.getObligationsReport();
+        return this.reportsApi.getObligationsReport({ page, pageSize });
       case 'report-foreign-reserve':
         return this.reportsApi.getForeignReserve(
           new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString(),
           new Date().toISOString(),
+          { page, pageSize },
         );
       default:
         return null;
     }
   }
 
-  private normalizeRows(data: unknown): Record<string, unknown>[] {
+  private asPaged(data: unknown): { items: Record<string, unknown>[]; totalCount: number } {
     if (Array.isArray(data)) {
-      return data as Record<string, unknown>[];
+      return { items: data as Record<string, unknown>[], totalCount: data.length };
     }
 
     if (data && typeof data === 'object' && 'items' in data) {
-      return (data as { items: Record<string, unknown>[] }).items ?? [];
+      const paged = data as { items?: Record<string, unknown>[]; totalCount?: number };
+      const items = paged.items ?? [];
+      return { items, totalCount: paged.totalCount ?? items.length };
     }
 
     if (data && typeof data === 'object') {
-      return [data as Record<string, unknown>];
+      return { items: [data as Record<string, unknown>], totalCount: 1 };
     }
 
-    return [];
+    return { items: [], totalCount: 0 };
   }
 }
 

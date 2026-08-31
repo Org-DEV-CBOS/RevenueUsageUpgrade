@@ -9,12 +9,14 @@ import { CorrespondentsApiService, LookupsApiService } from '../../core/services
 import { ToastService } from '../../core/services/toast.service';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
 
 @Component({
   selector: 'app-correspondent-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe],
+  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -34,7 +36,7 @@ import { SearchSelectComponent, SearchSelectOption } from '../../shared/componen
       <div class="panel">
         @if (loading()) {
           <p>{{ 'COMMON.LOADING' | translate }}</p>
-        } @else if (!filtered().length) {
+        } @else if (!items().length) {
           <p>{{ 'COMMON.NO_DATA' | translate }}</p>
         } @else {
           <table class="data-table">
@@ -47,7 +49,7 @@ import { SearchSelectComponent, SearchSelectOption } from '../../shared/componen
               </tr>
             </thead>
             <tbody>
-              @for (item of paged(); track item.correspondentId) {
+              @for (item of items(); track item.correspondentId) {
                 <tr>
                   <td>{{ item | localizedField:'correspondentNameEn':'correspondentNameAr' }}</td>
                   <td>{{ item.correspondentCode }}</td>
@@ -63,18 +65,13 @@ import { SearchSelectComponent, SearchSelectOption } from '../../shared/componen
         }
       </div>
 
-      <div class="pagination">
-        <span>{{ 'COMMON.RECORDS_PER_PAGE' | translate }}</span>
-        <select [value]="pageSize()" (change)="setPageSize($event)">
-          <option value="10">10</option>
-          <option value="15">15</option>
-          <option value="20">20</option>
-          <option value="25">25</option>
-        </select>
-        <span>{{ currentPage() }} {{ 'COMMON.OF' | translate }} {{ totalPages() }}</span>
-        <button type="button" (click)="prevPage()" [disabled]="currentPage() <= 1">&lt;</button>
-        <button type="button" (click)="nextPage()" [disabled]="currentPage() >= totalPages()">&gt;</button>
-      </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
@@ -83,67 +80,45 @@ export class CorrespondentListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmService);
   private readonly fb = inject(FormBuilder);
 
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<Correspondent[]>([]);
-  readonly filtered = signal<Correspondent[]>([]);
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
   readonly searchControl = this.fb.nonNullable.control('');
 
   ngOnInit(): void {
     this.load();
   }
 
-  paged(): Correspondent[] {
-    const start = (this.currentPage() - 1) * this.pageSize();
-    return this.filtered().slice(start, start + this.pageSize());
-  }
-
-  totalPages(): number {
-    return Math.max(1, Math.ceil(this.filtered().length / this.pageSize()));
-  }
-
   applySearch(): void {
-    const term = this.searchControl.value.trim().toLowerCase();
-    const items = this.items().filter((item) =>
-      [
-        item.correspondentNameEn,
-        item.correspondentNameAr,
-        item.correspondentCode,
-        item.countryNameEn,
-        item.countryNameAr,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term)),
-    );
-    this.filtered.set(items);
     this.currentPage.set(1);
+    this.load();
   }
 
-  setPageSize(event: Event): void {
-    this.pageSize.set(Number((event.target as HTMLSelectElement).value));
+  goToPage(page: number): void {
+    this.currentPage.set(page);
+    this.load();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
     this.currentPage.set(1);
+    this.load();
   }
 
-  prevPage(): void {
-    this.currentPage.update((page) => Math.max(1, page - 1));
-  }
-
-  nextPage(): void {
-    this.currentPage.update((page) => Math.min(this.totalPages(), page + 1));
-  }
-
-  confirmDelete(item: Correspondent): void {
-    if (!confirm(this.translate.instant('COMMON.CONFIRM_DELETE'))) {
+  async confirmDelete(item: Correspondent): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) {
       return;
     }
 
     this.api.delete(item.correspondentId, this.auth.actor()).subscribe({
       next: () => {
-        this.toast.success(this.translate.instant('COMMON.SUCCESS'));
+        this.toast.success(this.translate.instant('COMMON.DELETED'));
         this.load();
       },
       error: (err) => this.toast.error(extractHttpError(err)),
@@ -153,17 +128,24 @@ export class CorrespondentListComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.getAll({ activeOnly: false }).subscribe({
-      next: (data) => {
-        this.items.set(data);
-        this.applySearch();
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set(extractHttpError(err));
-      },
-    });
+    this.api
+      .getPaged({
+        activeOnly: false,
+        page: this.currentPage(),
+        pageSize: this.pageSize(),
+        search: this.searchControl.value.trim() || undefined,
+      })
+      .subscribe({
+        next: (response) => {
+          this.items.set(response.items ?? []);
+          this.totalCount.set(response.totalCount ?? 0);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(extractHttpError(err));
+        },
+      });
   }
 }
 

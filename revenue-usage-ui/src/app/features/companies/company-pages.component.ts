@@ -1,17 +1,19 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Company } from '../../core/models/company.model';
 import { SYSTEM_USER } from '../../core/constants/system-user';
 import { LookupsApiService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-company-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe],
+  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -27,7 +29,7 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
       <div class="panel">
         @if (loading()) {
           <p>{{ 'COMMON.LOADING' | translate }}</p>
-        } @else if (!filtered().length) {
+        } @else if (!companies().length) {
           <p>{{ 'COMMON.NO_DATA' | translate }}</p>
         } @else {
           <table class="data-table">
@@ -40,7 +42,7 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
               </tr>
             </thead>
             <tbody>
-              @for (company of filtered(); track company.companyId) {
+              @for (company of companies(); track company.companyId) {
                 <tr>
                   <td>{{ company | localizedField:'companyNameEn':'companyNameAr' }}</td>
                   <td>{{ company.companyCode }}</td>
@@ -55,47 +57,52 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
           </table>
         }
       </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
 export class CompanyListComponent implements OnInit {
   private readonly api = inject(LookupsApiService);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly translate = inject(TranslateService);
   private readonly fb = inject(FormBuilder);
 
   readonly loading = signal(false);
   readonly companies = signal<Company[]>([]);
-  readonly filtered = signal<Company[]>([]);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
   readonly searchControl = this.fb.nonNullable.control('');
 
   ngOnInit(): void {
-    this.loading.set(true);
-    this.api.getCompanies().subscribe({
-      next: (items) => {
-        this.companies.set(items);
-        this.filtered.set(items);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.toast.error('Failed to load companies');
-      },
-    });
+    this.load();
   }
 
   applySearch(): void {
-    const term = this.searchControl.value.trim().toLowerCase();
-    this.filtered.set(
-      this.companies().filter((company) =>
-        [company.companyNameEn, company.companyNameAr, company.notes, String(company.companyCode)]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(term)),
-      ),
-    );
+    this.currentPage.set(1);
+    this.load();
   }
 
-  confirmDelete(company: Company): void {
-    if (!confirm('Delete company?')) {
+  goToPage(page: number): void {
+    this.currentPage.set(page);
+    this.load();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
+    this.currentPage.set(1);
+    this.load();
+  }
+
+  async confirmDelete(company: Company): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) {
       return;
     }
 
@@ -106,11 +113,31 @@ export class CompanyListComponent implements OnInit {
       })
       .subscribe({
         next: () => {
-          this.toast.success('Deleted');
-          this.companies.update((items) => items.filter((item) => item.companyId !== company.companyId));
-          this.filtered.update((items) => items.filter((item) => item.companyId !== company.companyId));
+          this.toast.success(this.translate.instant('COMMON.DELETED'));
+          this.load();
         },
-        error: () => this.toast.error('Delete failed'),
+        error: () => this.toast.error(this.translate.instant('COMMON.ERROR')),
+      });
+  }
+
+  private load(): void {
+    this.loading.set(true);
+    this.api
+      .getCompaniesPaged({
+        page: this.currentPage(),
+        pageSize: this.pageSize(),
+        search: this.searchControl.value.trim() || undefined,
+      })
+      .subscribe({
+        next: (response) => {
+          this.companies.set(response.items ?? []);
+          this.totalCount.set(response.totalCount ?? 0);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.toast.error('Failed to load companies');
+        },
       });
   }
 }

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RevenuUsage.Application.Common;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Currencies.Commands.AddExchangeRate;
 using RevenuUsage.Application.Features.Currencies.Commands.DeleteExchangeRate;
@@ -25,7 +26,13 @@ public class CurrenciesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<CurrencyDto>>> GetAll([FromQuery] bool activeOnly=true,CancellationToken ct=default)=>Ok(await _mediator.Send(new GetCurrenciesQuery(activeOnly),ct));
+    public async Task<ActionResult<PagedResponse<CurrencyDto>>> GetAll(
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(await _mediator.Send(new GetCurrenciesQuery(activeOnly), ct), page, pageSize, pageNumber));
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] SaveCurrencyDto model,CancellationToken ct)=>Ok(new{currencyId=await _mediator.Send(new SaveCurrencyCommand(model with{CurrencyId=null}),ct)});
     [HttpPut("{id:guid}")]
@@ -37,53 +44,53 @@ public class CurrenciesController : ControllerBase
     /// Get balances per currency
     /// </summary>
     [HttpGet("balances")]
-    [ProducesResponseType(typeof(IEnumerable<CurrencyBalanceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<CurrencyBalanceDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<CurrencyBalanceDto>>> GetCurrencyBalances(
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<CurrencyBalanceDto>>> GetCurrencyBalances(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetCurrencyBalancesQuery();
-
-        var result = await _mediator.Send(query, cancellationToken);
-
-        return Ok(result);
+        var result = await _mediator.Send(new GetCurrencyBalancesQuery(), cancellationToken);
+        return Ok(Paging.Create(result, page, pageSize, pageNumber));
     }
 
     /// <summary>
     /// Get daily valuation (optionally filtered by date)
     /// </summary>
     [HttpGet("daily-valuation")]
-    [ProducesResponseType(typeof(IEnumerable<DailyValuationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<DailyValuationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<DailyValuationDto>>> GetDailyValuation(
+    public async Task<ActionResult<PagedResponse<DailyValuationDto>>> GetDailyValuation(
         [FromQuery] DateTime? valuationDate,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetDailyValuationQuery(valuationDate);
-
-        var result = await _mediator.Send(query, cancellationToken);
-
-        return Ok(result);
+        var result = await _mediator.Send(new GetDailyValuationQuery(valuationDate), cancellationToken);
+        return Ok(Paging.Create(result, page, pageSize, pageNumber));
     }
 
     /// <summary>
     /// Get exchange rates with optional filters
     /// </summary>
     [HttpGet("exchange-rates")]
-    [ProducesResponseType(typeof(IEnumerable<ExchangeRateDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ExchangeRateDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<ExchangeRateDto>>> GetExchangeRate(
+    public async Task<ActionResult<PagedResponse<ExchangeRateDto>>> GetExchangeRate(
         [FromQuery] DateTime? rateDate,
         [FromQuery] Guid? fromCurrencyId,
         [FromQuery] Guid? toCurrencyId,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetExchangeRateQuery(rateDate, fromCurrencyId, toCurrencyId);
-
-        var result = await _mediator.Send(query, cancellationToken);
-
-        return Ok(result);
+        var result = await _mediator.Send(new GetExchangeRateQuery(rateDate, fromCurrencyId, toCurrencyId), cancellationToken);
+        return Ok(Paging.Create(result, page, pageSize, pageNumber));
     }
 
     /// <summary>
@@ -133,15 +140,15 @@ public class CurrenciesController : ControllerBase
     /// Get correspondent balances grouped by currency
     /// </summary>
     [HttpGet("correspondent-balances")]
-    [ProducesResponseType(typeof(IEnumerable<CorrespondentBalanceByCurrencyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<CorrespondentBalanceByCurrencyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<CorrespondentBalanceByCurrencyDto>>> GetCorrespondentBalancesByCurrency(
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<CorrespondentBalanceByCurrencyDto>>> GetCorrespondentBalancesByCurrency(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetCorrespondentBalancesByCurrencyQuery();
-
-        var result = await _mediator.Send(query, cancellationToken);
-
-        return Ok(result);
+        var result = await _mediator.Send(new GetCorrespondentBalancesByCurrencyQuery(), cancellationToken);
+        return Ok(Paging.Create(result, page, pageSize, pageNumber));
     }
 }

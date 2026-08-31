@@ -10,9 +10,9 @@ export class LanguageService {
 
   init(): void {
     this.translate.addLangs(['en', 'ar']);
-    this.translate.setFallbackLang('en');
+    this.translate.setFallbackLang('ar');
 
-    const saved = (localStorage.getItem(this.storageKey) as AppLanguage | null) ?? 'en';
+    const saved = this.readSavedLanguage() ?? 'ar';
     this.setLanguage(saved);
   }
 
@@ -29,6 +29,11 @@ export class LanguageService {
   }
 
   currentLanguage(): AppLanguage {
-    return (this.translate.getCurrentLang() as AppLanguage) || 'en';
+    return (this.translate.getCurrentLang() as AppLanguage) || 'ar';
+  }
+
+  private readSavedLanguage(): AppLanguage | null {
+    const saved = localStorage.getItem(this.storageKey);
+    return saved === 'en' || saved === 'ar' ? saved : null;
   }
 }

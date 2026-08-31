@@ -1,17 +1,19 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Country } from '../../core/models/country.model';
 import { SYSTEM_USER } from '../../core/constants/system-user';
 import { LookupsApiService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-country-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe],
+  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -44,24 +46,44 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
           </tbody>
         </table>
       </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
 export class CountryListComponent implements OnInit {
   private readonly api = inject(LookupsApiService);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly translate = inject(TranslateService);
 
   readonly countries = signal<Country[]>([]);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
 
   ngOnInit(): void {
-    this.api.getCountries().subscribe({
-      next: (items) => this.countries.set(items),
-      error: () => this.toast.error('Failed to load countries'),
-    });
+    this.load();
   }
 
-  confirmDelete(country: Country): void {
-    if (!confirm('Delete country?')) {
+  goToPage(page: number): void {
+    this.currentPage.set(page);
+    this.load();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
+    this.currentPage.set(1);
+    this.load();
+  }
+
+  async confirmDelete(country: Country): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) {
       return;
     }
 
@@ -71,9 +93,22 @@ export class CountryListComponent implements OnInit {
         deletedBy: SYSTEM_USER,
       })
       .subscribe({
-        next: () => this.countries.update((items) => items.filter((item) => item.countryId !== country.countryId)),
-        error: () => this.toast.error('Delete failed'),
+        next: () => {
+          this.toast.success(this.translate.instant('COMMON.DELETED'));
+          this.load();
+        },
+        error: () => this.toast.error(this.translate.instant('COMMON.ERROR')),
       });
+  }
+
+  private load(): void {
+    this.api.getCountriesPaged({ page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+      next: (response) => {
+        this.countries.set(response.items ?? []);
+        this.totalCount.set(response.totalCount ?? 0);
+      },
+      error: () => this.toast.error('Failed to load countries'),
+    });
   }
 }
 

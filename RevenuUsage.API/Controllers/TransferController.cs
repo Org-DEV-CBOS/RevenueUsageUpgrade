@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RevenuUsage.Application.Common;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Transfers.Commands.ConfirmTransfer;
 using RevenuUsage.Application.Features.Transfers.Commands.CreateTransfer;
@@ -88,9 +89,14 @@ namespace RevenuUsage.API.Controllers
         }
 
         [HttpGet("Statement/GetCorrespondentAccountStatement")]
-        public async Task<ActionResult<List<AccountStatementDto>>> GetCorrespondentAccountStatement([FromQuery] GetAccountStatementQuery query)
+        public async Task<ActionResult<PagedResponse<AccountStatementDto>>> GetCorrespondentAccountStatement(
+            [FromQuery] GetAccountStatementQuery query,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 25,
+            [FromQuery] int pageNumber = 0)
         {
-            return Ok(await _mediator.Send(query));
+            var result = await _mediator.Send(query);
+            return Ok(Paging.Create(result, page, pageSize, pageNumber));
         }
 
         [HttpGet("Statement/GetFinalBankPosition")]
@@ -102,12 +108,15 @@ namespace RevenuUsage.API.Controllers
 
 
         [HttpGet("Statement/GetCurrencyStatement")]
-        public async Task<ActionResult<List<CurrencyStatementDto>>> GetCurrencyStatement(
+        public async Task<ActionResult<PagedResponse<CurrencyStatementDto>>> GetCurrencyStatement(
             [FromQuery] Guid currencyId,
-            [FromQuery] DateTime asOfDate)
+            [FromQuery] DateTime asOfDate,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 25,
+            [FromQuery] int pageNumber = 0)
         {
-            var query = new GetCurrencyStatementQuery(currencyId, asOfDate);
-            return Ok(await _mediator.Send(query));
+            var result = await _mediator.Send(new GetCurrencyStatementQuery(currencyId, asOfDate));
+            return Ok(Paging.Create(result, page, pageSize, pageNumber));
         }
 
     }

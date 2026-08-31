@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.API.Exports;
+using RevenuUsage.Application.Common;
 using RevenuUsage.Application.Features.Reporting;
 using RevenuUsage.Domain.Entities;
 
@@ -20,38 +21,96 @@ public sealed class ReportsController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<ActionResult> Dashboard(DateTime? asOfDate, CancellationToken ct)
+    [ProducesResponseType(typeof(DashboardSummary), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DashboardSummary>> Dashboard(DateTime? asOfDate, CancellationToken ct)
     {
         return Ok(await _mediator.Send(new GetDashboardQuery(asOfDate ?? DateTime.Today), ct));
     }
 
     [HttpGet("foreign-reserve")]
-    public async Task<ActionResult> Reserve(DateTime startDate, DateTime endDate, CancellationToken ct)
+    public async Task<ActionResult> Reserve(
+        DateTime startDate,
+        DateTime endDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default)
     {
-        return Ok(await _mediator.Send(new GetForeignReserveReportQuery(startDate, endDate), ct));
+        var rows = await _mediator.Send(new GetForeignReserveReportQuery(startDate, endDate), ct);
+        return Ok(Paging.Create(rows, page, pageSize, pageNumber));
     }
 
     [HttpGet("obligations")]
-    public async Task<ActionResult> Obligations(DateTime? startDate, DateTime? endDate, string? status, string? clientType, CancellationToken ct)
+    public async Task<ActionResult> Obligations(
+        DateTime? startDate,
+        DateTime? endDate,
+        string? status,
+        string? clientType,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default)
     {
-        return Ok(await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientType), ct));
+        var rows = await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientType), ct);
+        return Ok(Paging.Create(rows, page, pageSize, pageNumber));
     }
 
     [HttpGet("credit-movements")]
-    public async Task<ActionResult> CreditMovements(DateTime startDate, DateTime endDate, string? searchValue, CancellationToken ct) =>
-        Ok(await _mediator.Send(new GetCreditMovementsReportQuery(startDate, endDate, searchValue), ct));
+    public async Task<ActionResult> CreditMovements(
+        DateTime startDate,
+        DateTime endDate,
+        string? searchValue,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(
+            await _mediator.Send(new GetCreditMovementsReportQuery(startDate, endDate, searchValue), ct),
+            page,
+            pageSize,
+            pageNumber));
 
     [HttpGet("debit-movements")]
-    public async Task<ActionResult> DebitMovements(DateTime startDate, DateTime endDate, string? searchValue, CancellationToken ct) =>
-        Ok(await _mediator.Send(new GetDebitMovementsReportQuery(startDate, endDate, searchValue), ct));
+    public async Task<ActionResult> DebitMovements(
+        DateTime startDate,
+        DateTime endDate,
+        string? searchValue,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(
+            await _mediator.Send(new GetDebitMovementsReportQuery(startDate, endDate, searchValue), ct),
+            page,
+            pageSize,
+            pageNumber));
 
     [HttpGet("resources")]
-    public async Task<ActionResult> Resources(DateTime? startDate, DateTime? endDate, CancellationToken ct) =>
-        Ok(await _mediator.Send(new GetResourcesReportQuery(startDate, endDate), ct));
+    public async Task<ActionResult> Resources(
+        DateTime? startDate,
+        DateTime? endDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(
+            await _mediator.Send(new GetResourcesReportQuery(startDate, endDate), ct),
+            page,
+            pageSize,
+            pageNumber));
 
     [HttpGet("correspondent-balances")]
-    public async Task<ActionResult> CorrespondentBalances(string? searchValue, CancellationToken ct) =>
-        Ok(await _mediator.Send(new GetCorrespondentBalanceReportQuery(searchValue), ct));
+    public async Task<ActionResult> CorrespondentBalances(
+        string? searchValue,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(
+            await _mediator.Send(new GetCorrespondentBalanceReportQuery(searchValue), ct),
+            page,
+            pageSize,
+            pageNumber));
 
     [HttpGet("foreign-reserve/export")]
     public async Task<IActionResult> ExportForeignReserve(

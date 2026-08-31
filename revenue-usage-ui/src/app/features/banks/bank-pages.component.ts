@@ -1,18 +1,20 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Bank } from '../../core/models/bank.model';
 import { SYSTEM_USER } from '../../core/constants/system-user';
 import { LookupsApiService } from '../../core/services/api.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { ToastService } from '../../core/services/toast.service';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-bank-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe],
+  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -32,7 +34,7 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
       <div class="panel">
         @if (loading()) {
           <p>{{ 'COMMON.LOADING' | translate }}</p>
-        } @else if (!filtered().length) {
+        } @else if (!banks().length) {
           <p>{{ 'COMMON.NO_DATA' | translate }}</p>
         } @else {
           <table class="data-table">
@@ -46,7 +48,7 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
               </tr>
             </thead>
             <tbody>
-              @for (bank of paged(); track bank.bankId) {
+              @for (bank of banks(); track bank.bankId) {
                 <tr>
                   <td>{{ bank | localizedField:'bankNameEn':'bankNameAr' }}</td>
                   <td>{{ bank.bankCode }}</td>
@@ -63,31 +65,29 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
         }
       </div>
 
-      <div class="pagination">
-        <span>{{ 'COMMON.RECORDS_PER_PAGE' | translate }}</span>
-        <select [value]="pageSize()" (change)="setPageSize($event)">
-          <option value="10">10</option>
-          <option value="15">15</option>
-          <option value="20">20</option>
-        </select>
-        <span>{{ currentPage() }} {{ 'COMMON.OF' | translate }} {{ totalPages() }}</span>
-        <button type="button" (click)="prevPage()" [disabled]="currentPage() <= 1">&lt;</button>
-        <button type="button" (click)="nextPage()" [disabled]="currentPage() >= totalPages()">&gt;</button>
-      </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
 export class BankListComponent implements OnInit {
   private readonly api = inject(LookupsApiService);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly translate = inject(TranslateService);
   private readonly fb = inject(FormBuilder);
 
   readonly loading = signal(false);
   readonly error = signal('');
   readonly banks = signal<Bank[]>([]);
-  readonly filtered = signal<Bank[]>([]);
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
 
   readonly searchControl = this.fb.nonNullable.control('');
 
@@ -95,41 +95,25 @@ export class BankListComponent implements OnInit {
     this.loadBanks();
   }
 
-  paged(): Bank[] {
-    const start = (this.currentPage() - 1) * this.pageSize();
-    return this.filtered().slice(start, start + this.pageSize());
-  }
-
-  totalPages(): number {
-    return Math.max(1, Math.ceil(this.filtered().length / this.pageSize()));
-  }
-
   applySearch(): void {
-    const term = this.searchControl.value.trim().toLowerCase();
-    const items = this.banks().filter((bank) =>
-      [bank.bankNameEn, bank.bankNameAr, bank.shortName, String(bank.bankCode)]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term)),
-    );
-    this.filtered.set(items);
     this.currentPage.set(1);
+    this.loadBanks();
   }
 
-  setPageSize(event: Event): void {
-    this.pageSize.set(Number((event.target as HTMLSelectElement).value));
+  goToPage(page: number): void {
+    this.currentPage.set(page);
+    this.loadBanks();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
     this.currentPage.set(1);
+    this.loadBanks();
   }
 
-  prevPage(): void {
-    this.currentPage.update((page) => Math.max(1, page - 1));
-  }
-
-  nextPage(): void {
-    this.currentPage.update((page) => Math.min(this.totalPages(), page + 1));
-  }
-
-  confirmDelete(bank: Bank): void {
-    if (!confirm('Delete bank?')) {
+  async confirmDelete(bank: Bank): Promise<void> {
+    const confirmed = await this.confirm.confirmDelete();
+    if (!confirmed) {
       return;
     }
 
@@ -140,28 +124,34 @@ export class BankListComponent implements OnInit {
       })
       .subscribe({
         next: () => {
-          this.toast.success('Deleted');
+          this.toast.success(this.translate.instant('COMMON.DELETED'));
           this.loadBanks();
         },
-        error: () => this.toast.error('Delete failed'),
+        error: () => this.toast.error(this.translate.instant('COMMON.ERROR')),
       });
   }
 
   private loadBanks(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.getBanks().subscribe({
-      next: (items) => {
-        this.banks.set(items);
-        this.filtered.set(items);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set(extractHttpError(err));
-        this.toast.error(extractHttpError(err));
-      },
-    });
+    this.api
+      .getBanksPaged({
+        page: this.currentPage(),
+        pageSize: this.pageSize(),
+        search: this.searchControl.value.trim() || undefined,
+      })
+      .subscribe({
+        next: (response) => {
+          this.banks.set(response.items ?? []);
+          this.totalCount.set(response.totalCount ?? 0);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(extractHttpError(err));
+          this.toast.error(extractHttpError(err));
+        },
+      });
   }
 }
 

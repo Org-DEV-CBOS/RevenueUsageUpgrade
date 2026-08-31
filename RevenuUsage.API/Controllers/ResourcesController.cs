@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RevenuUsage.Application.Common;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Resources.Commands.AddResourceToCorrespondentAccount;
 using RevenuUsage.Application.Features.Resources.Commands.DeleteResource;
@@ -22,7 +23,13 @@ public class ResourcesController : ControllerBase
     }
 
     [HttpGet("types")]
-    public async Task<ActionResult<IReadOnlyList<ResourceTypeDto>>> GetTypes([FromQuery] bool activeOnly=true,CancellationToken ct=default)=>Ok(await _mediator.Send(new GetResourceTypesQuery(activeOnly),ct));
+    public async Task<ActionResult<PagedResponse<ResourceTypeDto>>> GetTypes(
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(await _mediator.Send(new GetResourceTypesQuery(activeOnly), ct), page, pageSize, pageNumber));
     [HttpPost("types")]
     public async Task<ActionResult> CreateType([FromBody] SaveResourceTypeDto model,CancellationToken ct)=>Ok(new{resourceTypeId=await _mediator.Send(new SaveResourceTypeCommand(model with{ResourceTypeId=null}),ct)});
     [HttpPut("types/{id:guid}")]
@@ -58,20 +65,22 @@ public class ResourcesController : ControllerBase
     /// Get resource statement for a correspondent account
     /// </summary>
     [HttpGet("statement/{correspondentAccountId}")]
-    [ProducesResponseType(typeof(IEnumerable<ResourceStatementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ResourceStatementDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<ResourceStatementDto>>> GetResourceStatement(
+    public async Task<ActionResult<PagedResponse<ResourceStatementDto>>> GetResourceStatement(
         [FromRoute] Guid correspondentAccountId,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetResourceStatementQuery(correspondentAccountId, startDate, endDate);
-
-        var result = await _mediator.Send(query, cancellationToken);
-
-        return Ok(result);
+        var result = await _mediator.Send(
+            new GetResourceStatementQuery(correspondentAccountId, startDate, endDate),
+            cancellationToken);
+        return Ok(Paging.Create(result, page, pageSize, pageNumber));
     }
 
     /// <summary>

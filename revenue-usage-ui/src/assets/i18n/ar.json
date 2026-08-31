@@ -18,6 +18,8 @@
     "LOADING": "جاري التحميل...",
     "NO_DATA": "لا توجد سجلات",
     "CONFIRM_DELETE": "هل أنت متأكد من حذف هذا السجل؟",
+    "CONFIRM_DELETE_TITLE": "حذف السجل؟",
+    "DELETED": "تم الحذف بنجاح",
     "RECORDS_PER_PAGE": "سجلات لكل صفحة",
     "OF": "من",
     "REQUIRED": "مطلوب",
@@ -140,8 +142,18 @@
     "TITLE": "لوحة التحكم",
     "WELCOME": "مرحباً بعودتك، {{name}}",
     "TOTAL_BALANCE": "إجمالي الرصيد",
+    "NET_POSITION": "صافي المركز",
+    "TOTAL_RESOURCES": "إجمالي الموارد",
+    "CONFIRMED_TRANSFERS": "التحويلات المؤكدة",
+    "CONFIRMED_TRANSFER_COUNT": "عدد التحويلات المؤكدة",
     "ACTIVE_OBLIGATIONS": "الالتزامات النشطة",
+    "OUTSTANDING_OBLIGATIONS": "الالتزامات القائمة",
     "PENDING_TRANSFERS": "التحويلات المعلقة",
+    "RESERVES": "الاحتياطيات",
+    "ACCOUNTS": "الحسابات",
+    "MASTER_DATA": "البيانات الأساسية",
+    "FINANCIAL": "الموقف المالي",
+    "COUNTS": "النشاط والأعداد",
     "RECENT_ACTIVITY": "النشاط الأخير"
   }
 }

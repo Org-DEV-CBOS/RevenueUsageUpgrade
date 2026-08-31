@@ -15,7 +15,7 @@ export class LanguageToggleComponent {
   private readonly languageService = inject(LanguageService);
 
   get label(): string {
-    return this.languageService.currentLanguage() === 'ar' ? 'English' : 'العربية';
+    return this.languageService.currentLanguage() === 'ar' ? 'EN' : 'AR';
   }
 
   toggle(): void {

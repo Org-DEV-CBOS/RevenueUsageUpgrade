@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RevenuUsage.Application.Common;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Lookups.Commands.CreateBank;
 using RevenuUsage.Application.Features.Lookups.Commands.CreateCompany;
@@ -21,7 +22,7 @@ using RevenuUsage.Application.Features.MasterData;
 
 namespace RevenuUsage.API.Controllers;
 
-[Authorize]
+//[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class LookupsController : ControllerBase
@@ -39,13 +40,18 @@ public class LookupsController : ControllerBase
     /// Get all banks
     /// </summary>
     [HttpGet("banks")]
-    [ProducesResponseType(typeof(IEnumerable<BankDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<BankDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<BankDto>>> GetAllBanks(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<BankDto>>> GetAllBanks(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetAllBanksQuery();
-        var result = await _mediator.Send(query, cancellationToken);
-        return Ok(result);
+        var result = await _mediator.Send(new GetAllBanksQuery(), cancellationToken);
+        var items = Paging.Search(result, search, b => [b.BankNameEn, b.BankNameAr, b.ShortName, b.BankCode]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
     }
 
     /// <summary>
@@ -140,13 +146,18 @@ public class LookupsController : ControllerBase
     /// Get all companies
     /// </summary>
     [HttpGet("companies")]
-    [ProducesResponseType(typeof(IEnumerable<CompanyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<CompanyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<CompanyDto>>> GetAllCompanies(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<CompanyDto>>> GetAllCompanies(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetAllCompaniesQuery();
-        var result = await _mediator.Send(query, cancellationToken);
-        return Ok(result);
+        var result = await _mediator.Send(new GetAllCompaniesQuery(), cancellationToken);
+        var items = Paging.Search(result, search, c => [c.CompanyNameEn, c.CompanyNameAr, c.ShortName, c.Notes, c.CompanyCode]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
     }
 
     /// <summary>
@@ -243,13 +254,18 @@ public class LookupsController : ControllerBase
     /// Get all countries
     /// </summary>
     [HttpGet("countries")]
-    [ProducesResponseType(typeof(IEnumerable<CountryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<CountryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<CountryDto>>> GetAllCountries(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<CountryDto>>> GetAllCountries(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default)
     {
-        var query = new GetAllCountriesQuery();
-        var result = await _mediator.Send(query, cancellationToken);
-        return Ok(result);
+        var result = await _mediator.Send(new GetAllCountriesQuery(), cancellationToken);
+        var items = Paging.Search(result, search, c => [c.CountryNameEn, c.CountryNameAr, c.IsoCode, c.CountryCode]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
     }
 
     /// <summary>
@@ -341,8 +357,13 @@ public class LookupsController : ControllerBase
     #region Operation Types
 
     [HttpGet("operation-types")]
-    public async Task<ActionResult<IReadOnlyList<OperationTypeDto>>> GetOperationTypes([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
-        Ok(await _mediator.Send(new GetOperationTypesQuery(activeOnly), ct));
+    public async Task<ActionResult<PagedResponse<OperationTypeDto>>> GetOperationTypes(
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(await _mediator.Send(new GetOperationTypesQuery(activeOnly), ct), page, pageSize, pageNumber));
 
     [HttpPost("operation-types")]
     public async Task<ActionResult> CreateOperationType([FromBody] SaveOperationTypeDto model, CancellationToken ct) =>
@@ -367,8 +388,13 @@ public class LookupsController : ControllerBase
     #region Usage Types
 
     [HttpGet("usage-types")]
-    public async Task<ActionResult<IReadOnlyList<UsageTypeDto>>> GetUsageTypes([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
-        Ok(await _mediator.Send(new GetUsageTypesQuery(activeOnly), ct));
+    public async Task<ActionResult<PagedResponse<UsageTypeDto>>> GetUsageTypes(
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(await _mediator.Send(new GetUsageTypesQuery(activeOnly), ct), page, pageSize, pageNumber));
 
     [HttpPost("usage-types")]
     public async Task<ActionResult> CreateUsageType([FromBody] SaveUsageTypeDto model, CancellationToken ct) =>

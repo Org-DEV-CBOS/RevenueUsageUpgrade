@@ -1,9 +1,29 @@
-export const SYSTEM_USER = 'system';
+export interface DashboardSummary {
+  asOfDate: string;
+  totalResourcesUsd: number;
+  confirmedTransfersUsd: number;
+  totalAccountBalance: number;
+  netPositionUsd: number;
+  outstandingObligationsUsd: number;
+  reserveTotalUsd: number;
+  correspondentCount: number;
+  accountCount: number;
+  pendingTransferCount: number;
+  confirmedTransferCount: number;
+  bankCount: number;
+  companyCount: number;
+  countryCount: number;
+  currencyCount: number;
+  beneficiaryCount: number;
+  resourceTypeCount: number;
+  obligationCount: number;
+}
 
 export interface PagedResponse<T> {
   items: T[];
   totalCount: number;
-  pageNumber: number;
+  page: number;
+  pageNumber?: number;
   pageSize: number;
   totalPages: number;
 }

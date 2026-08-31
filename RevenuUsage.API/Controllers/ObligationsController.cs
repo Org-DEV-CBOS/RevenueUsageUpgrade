@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RevenuUsage.Application.Common;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Obligations.Commands.AddObligationPayment;
 using RevenuUsage.Application.Features.Obligations.Commands.DeleteObligationPayment;
@@ -21,7 +22,15 @@ public class ObligationsController : ControllerBase
     {
         _mediator = mediator;
     }
-    [HttpGet] public async Task<ActionResult<IReadOnlyList<Obligation>>> GetAll([FromQuery]bool activeOnly=true,[FromQuery]string? clientType=null,CancellationToken ct=default)=>Ok(await _mediator.Send(new GetObligationsQuery(activeOnly,clientType),ct));
+    [HttpGet]
+    public async Task<ActionResult<PagedResponse<Obligation>>> GetAll(
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] string? clientType = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(await _mediator.Send(new GetObligationsQuery(activeOnly, clientType), ct), page, pageSize, pageNumber));
     [HttpPost] public async Task<ActionResult> Create(CreateObligationCommand command,CancellationToken ct)=>Ok(new{obligationId=await _mediator.Send(command,ct)});
     [HttpDelete("{id:guid}")] public async Task<ActionResult> Delete(Guid id,[FromBody]DeleteMasterDataDto dto,CancellationToken ct){await _mediator.Send(new DeleteObligationCommand(id,dto.DeletedBy??string.Empty),ct);return NoContent();}
 

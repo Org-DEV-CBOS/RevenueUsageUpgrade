@@ -11,4 +11,8 @@ public sealed record GetTransfersQuery(
     DateTime? StartDate,
     DateTime? EndDate,
     int Page = 1,
-    int PageSize = 25) : IRequest<PagedResponse<TransferListItemDto>>;
+    int PageSize = 25,
+    int PageNumber = 0) : IRequest<PagedResponse<TransferListItemDto>>
+{
+    public int ResolvedPage => PageNumber > 0 ? PageNumber : Page;
+}

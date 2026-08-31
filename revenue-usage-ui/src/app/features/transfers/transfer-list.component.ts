@@ -3,11 +3,12 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { TranslatePipe } from '@ngx-translate/core';
 import { TransfersApiService } from '../../core/services/api.service';
 import { TransferListItem } from '../../core/models/common.model';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
 @Component({
   selector: 'app-transfer-list',
   standalone: true,
-  imports: [TranslatePipe, DecimalPipe, DatePipe],
+  imports: [TranslatePipe, DecimalPipe, DatePipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -48,6 +49,13 @@ import { TransferListItem } from '../../core/models/common.model';
           </table>
         }
       </div>
+      <app-pagination
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
@@ -56,12 +64,31 @@ export class TransferListComponent implements OnInit {
 
   readonly loading = signal(false);
   readonly transfers = signal<TransferListItem[]>([]);
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  goToPage(page: number): void {
+    this.page.set(page);
+    this.load();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
+    this.page.set(1);
+    this.load();
+  }
+
+  private load(): void {
     this.loading.set(true);
-    this.api.getTransfers({ pageNumber: 1, pageSize: 50 }).subscribe({
+    this.api.getTransfers({ page: this.page(), pageSize: this.pageSize() }).subscribe({
       next: (response) => {
         this.transfers.set(response.items ?? []);
+        this.totalCount.set(response.totalCount ?? 0);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),

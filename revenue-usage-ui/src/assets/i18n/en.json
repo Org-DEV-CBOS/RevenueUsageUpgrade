@@ -18,6 +18,8 @@
     "LOADING": "Loading...",
     "NO_DATA": "No records found",
     "CONFIRM_DELETE": "Are you sure you want to delete this record?",
+    "CONFIRM_DELETE_TITLE": "Delete record?",
+    "DELETED": "Deleted successfully",
     "RECORDS_PER_PAGE": "Records per page",
     "OF": "of",
     "REQUIRED": "Required",
@@ -131,7 +133,17 @@
     "TITLE": "Dashboard",
     "WELCOME": "Welcome back, {{name}}",
     "TOTAL_BALANCE": "Total Balance",
+    "NET_POSITION": "Net Position",
+    "TOTAL_RESOURCES": "Total Resources",
+    "CONFIRMED_TRANSFERS": "Confirmed Transfers",
+    "CONFIRMED_TRANSFER_COUNT": "Confirmed Transfer Count",
     "ACTIVE_OBLIGATIONS": "Active Obligations",
-    "PENDING_TRANSFERS": "Pending Transfers"
+    "OUTSTANDING_OBLIGATIONS": "Outstanding Obligations",
+    "PENDING_TRANSFERS": "Pending Transfers",
+    "RESERVES": "Reserves",
+    "ACCOUNTS": "Accounts",
+    "MASTER_DATA": "Master data",
+    "FINANCIAL": "Financial overview",
+    "COUNTS": "Activity and counts"
   }
 }

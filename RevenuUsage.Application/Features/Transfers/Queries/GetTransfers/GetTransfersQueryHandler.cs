@@ -22,7 +22,7 @@ public sealed class GetTransfersQueryHandler
             request.Status,
             request.StartDate,
             request.EndDate,
-            request.Page,
+            request.ResolvedPage,
             request.PageSize,
             cancellationToken);
 
@@ -44,6 +44,6 @@ public sealed class GetTransfersQueryHandler
             x.RejectedTime,
             x.RejectReason)).ToList();
 
-        return new PagedResponse<TransferListItemDto>(rows, request.Page, request.PageSize, totalCount);
+        return new PagedResponse<TransferListItemDto>(rows, request.ResolvedPage, request.PageSize, totalCount);
     }
 }

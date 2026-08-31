@@ -24,12 +24,14 @@ import { generateEntityCode } from '../../core/utils/generate-code';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 import { MoneyPipe } from '../../shared/pipes/money.pipe';
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
+import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { ConfirmService } from '../../core/services/confirm.service';
 
 // --- Accounts ---
 @Component({
   selector: 'app-account-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, MoneyPipe],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, MoneyPipe, PaginationComponent],
   providers: [LocalizedFieldPipe],
   template: `
     <div class="page">
@@ -69,6 +71,13 @@ import { SearchSelectComponent, SearchSelectOption } from '../../shared/componen
           </table>
         }
       </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
@@ -76,11 +85,16 @@ export class AccountListComponent implements OnInit {
   private readonly api = inject(CorrespondentAccountsApiService);
   private readonly currenciesApi = inject(CurrenciesApiService);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly translate = inject(TranslateService);
   private readonly localized = inject(LocalizedFieldPipe);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<CorrespondentAccount[]>([]);
   readonly currencies = signal<Currency[]>([]);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
 
   ngOnInit(): void { this.load(); }
 
@@ -89,10 +103,21 @@ export class AccountListComponent implements OnInit {
     return currency?.symbol || item.currencyCode || '';
   }
 
-  confirmDelete(item: CorrespondentAccount): void {
-    if (!confirm('Delete account?')) return;
+  goToPage(page: number): void {
+    this.currentPage.set(page);
+    this.load();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize.set(size);
+    this.currentPage.set(1);
+    this.load();
+  }
+
+  async confirmDelete(item: CorrespondentAccount): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) return;
     this.api.delete(item.correspondentAccountId).subscribe({
-      next: () => { this.toast.success('Deleted'); this.load(); },
+      next: () => { this.toast.success(this.translate.instant('COMMON.DELETED')); this.load(); },
       error: (err) => this.toast.error(extractHttpError(err)),
     });
   }
@@ -100,8 +125,12 @@ export class AccountListComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.getAll({ activeOnly: false }).subscribe({
-      next: (data) => { this.items.set(data); this.loading.set(false); },
+    this.api.getPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+      next: (data) => {
+        this.items.set(data.items ?? []);
+        this.totalCount.set(data.totalCount ?? 0);
+        this.loading.set(false);
+      },
       error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
     });
     this.currenciesApi.getAll().subscribe({
@@ -219,7 +248,7 @@ export class AccountFormComponent implements OnInit {
 @Component({
   selector: 'app-beneficiary-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -254,27 +283,45 @@ export class AccountFormComponent implements OnInit {
           </table>
         }
       </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
 export class BeneficiaryListComponent implements OnInit {
   private readonly api = inject(BeneficiariesApiService);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly translate = inject(TranslateService);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<Beneficiary[]>([]);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
   ngOnInit(): void { this.load(); }
-  confirmDelete(item: Beneficiary): void {
-    if (!confirm('Delete?')) return;
+  goToPage(page: number): void { this.currentPage.set(page); this.load(); }
+  changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
+  async confirmDelete(item: Beneficiary): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) return;
     this.api.delete(item.beneficiaryId).subscribe({
-      next: () => { this.toast.success('Deleted'); this.load(); },
+      next: () => { this.toast.success(this.translate.instant('COMMON.DELETED')); this.load(); },
       error: (err) => this.toast.error(extractHttpError(err)),
     });
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getAll({ activeOnly: false }).subscribe({
-      next: (d) => { this.items.set(d); this.loading.set(false); },
+    this.api.getPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+      next: (d) => {
+        this.items.set(d.items ?? []);
+        this.totalCount.set(d.totalCount ?? 0);
+        this.loading.set(false);
+      },
       error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
     });
   }
@@ -358,7 +405,7 @@ export class BeneficiaryFormComponent implements OnInit {
 @Component({
   selector: 'app-currency-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -391,27 +438,45 @@ export class BeneficiaryFormComponent implements OnInit {
           </table>
         }
       </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
 export class CurrencyListComponent implements OnInit {
   private readonly api = inject(CurrenciesApiService);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly translate = inject(TranslateService);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<Currency[]>([]);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
   ngOnInit(): void { this.load(); }
-  confirmDelete(item: Currency): void {
-    if (!confirm('Delete?')) return;
+  goToPage(page: number): void { this.currentPage.set(page); this.load(); }
+  changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
+  async confirmDelete(item: Currency): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) return;
     this.api.delete(item.currencyId).subscribe({
-      next: () => { this.toast.success('Deleted'); this.load(); },
+      next: () => { this.toast.success(this.translate.instant('COMMON.DELETED')); this.load(); },
       error: (err) => this.toast.error(extractHttpError(err)),
     });
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getAll().subscribe({
-      next: (d) => { this.items.set(d); this.loading.set(false); },
+    this.api.getPaged({ page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+      next: (d) => {
+        this.items.set(d.items ?? []);
+        this.totalCount.set(d.totalCount ?? 0);
+        this.loading.set(false);
+      },
       error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
     });
   }
@@ -483,7 +548,7 @@ export class CurrencyFormComponent implements OnInit {
 @Component({
   selector: 'app-resource-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -518,6 +583,13 @@ export class CurrencyFormComponent implements OnInit {
           </table>
         }
       </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
     </div>
   `,
 })
@@ -526,21 +598,31 @@ export class ResourceListComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly translate = inject(TranslateService);
+  private readonly confirm = inject(ConfirmService);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<ResourceType[]>([]);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
   ngOnInit(): void { this.load(); }
-  confirmDelete(item: ResourceType): void {
-    if (!confirm(this.translate.instant('COMMON.CONFIRM_DELETE'))) return;
+  goToPage(page: number): void { this.currentPage.set(page); this.load(); }
+  changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
+  async confirmDelete(item: ResourceType): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) return;
     this.api.deleteType(item.resourceTypeId, this.auth.actor()).subscribe({
-      next: () => { this.toast.success(this.translate.instant('COMMON.SUCCESS')); this.load(); },
+      next: () => { this.toast.success(this.translate.instant('COMMON.DELETED')); this.load(); },
       error: (err) => this.toast.error(extractHttpError(err)),
     });
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getTypes({ activeOnly: false }).subscribe({
-      next: (d) => { this.items.set(d); this.loading.set(false); },
+    this.api.getTypesPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+      next: (d) => {
+        this.items.set(d.items ?? []);
+        this.totalCount.set(d.totalCount ?? 0);
+        this.loading.set(false);
+      },
       error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
     });
   }

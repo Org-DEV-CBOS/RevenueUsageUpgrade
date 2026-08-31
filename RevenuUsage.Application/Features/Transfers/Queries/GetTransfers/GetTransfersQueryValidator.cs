@@ -8,8 +8,8 @@ public sealed class GetTransfersQueryValidator : AbstractValidator<GetTransfersQ
 
     public GetTransfersQueryValidator()
     {
-        RuleFor(x => x.Page).GreaterThan(0);
-        RuleFor(x => x.PageSize).InclusiveBetween(1, 200);
+        RuleFor(x => x.ResolvedPage).GreaterThan(0);
+        RuleFor(x => x.PageSize).InclusiveBetween(1, 500);
         RuleFor(x => x.StartDate)
             .LessThanOrEqualTo(x => x.EndDate)
             .When(x => x.StartDate.HasValue && x.EndDate.HasValue);

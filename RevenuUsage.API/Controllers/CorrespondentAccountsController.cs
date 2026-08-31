@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RevenuUsage.Application.Common;
 using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Correspondents;
 
@@ -15,12 +16,19 @@ public sealed class CorrespondentAccountsController : ControllerBase
     public CorrespondentAccountsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<CorrespondentAccountDto>>> GetAll(
+    public async Task<ActionResult<PagedResponse<CorrespondentAccountDto>>> GetAll(
         [FromQuery] Guid? correspondentId,
         [FromQuery] Guid? currencyId,
         [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
         CancellationToken ct = default) =>
-        Ok(await _mediator.Send(new GetCorrespondentAccountsQuery(correspondentId, currencyId, activeOnly), ct));
+        Ok(Paging.Create(
+            await _mediator.Send(new GetCorrespondentAccountsQuery(correspondentId, currencyId, activeOnly), ct),
+            page,
+            pageSize,
+            pageNumber));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CorrespondentAccountDto>> Get(Guid id, CancellationToken ct)

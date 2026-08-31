@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   Bank,
@@ -26,6 +27,7 @@ import {
   Coverage,
   CreateTransferRequest,
   Currency,
+  DashboardSummary,
   Deal,
   DeleteMasterDataRequest,
   Obligation,
@@ -36,9 +38,16 @@ import {
 } from '../models/common.model';
 import { SYSTEM_USER } from '../constants/system-user';
 
-type QueryParams = Record<string, string | number | boolean | undefined | null>;
+export const LOOKUP_PAGE_SIZE = 500;
 
-function toHttpParams(params?: QueryParams): HttpParams | undefined {
+export interface PageQuery {
+  page?: number;
+  pageSize?: number;
+  pageNumber?: number;
+  search?: string;
+}
+
+function toHttpParams(params?: Record<string, unknown> | object): HttpParams | undefined {
   if (!params) {
     return undefined;
   }
@@ -53,13 +62,31 @@ function toHttpParams(params?: QueryParams): HttpParams | undefined {
   return httpParams.keys().length ? httpParams : undefined;
 }
 
+export function pagedItems<T>(response: PagedResponse<T> | T[] | null | undefined): T[] {
+  if (!response) {
+    return [];
+  }
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return response.items ?? [];
+}
+
+type QueryParams = Record<string, string | number | boolean | undefined | null>;
+
 @Injectable({ providedIn: 'root' })
 export class LookupsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/lookups`;
 
+  getBanksPaged(params?: PageQuery) {
+    return this.http.get<PagedResponse<Bank>>(`${this.baseUrl}/banks`, { params: toHttpParams(params) });
+  }
+
   getBanks() {
-    return this.http.get<Bank[]>(`${this.baseUrl}/banks`);
+    return this.getBanksPaged({ page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   getBank(id: string) {
@@ -78,8 +105,12 @@ export class LookupsApiService {
     return this.http.delete(`${this.baseUrl}/banks/${id}`, { body: payload });
   }
 
+  getCompaniesPaged(params?: PageQuery) {
+    return this.http.get<PagedResponse<Company>>(`${this.baseUrl}/companies`, { params: toHttpParams(params) });
+  }
+
   getCompanies() {
-    return this.http.get<Company[]>(`${this.baseUrl}/companies`);
+    return this.getCompaniesPaged({ page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   getCompany(id: string) {
@@ -98,8 +129,12 @@ export class LookupsApiService {
     return this.http.delete(`${this.baseUrl}/companies/${id}`, { body: payload });
   }
 
+  getCountriesPaged(params?: PageQuery) {
+    return this.http.get<PagedResponse<Country>>(`${this.baseUrl}/countries`, { params: toHttpParams(params) });
+  }
+
   getCountries() {
-    return this.http.get<Country[]>(`${this.baseUrl}/countries`);
+    return this.getCountriesPaged({ page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   getCountry(id: string) {
@@ -124,8 +159,12 @@ export class CorrespondentsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/correspondents`;
 
+  getPaged(params?: { activeOnly?: boolean } & PageQuery) {
+    return this.http.get<PagedResponse<Correspondent>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll(params?: { activeOnly?: boolean }) {
-    return this.http.get<Correspondent[]>(this.baseUrl, { params: toHttpParams(params) });
+    return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   getById(id: string) {
@@ -152,8 +191,12 @@ export class CorrespondentAccountsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/correspondentaccounts`;
 
+  getPaged(params?: { correspondentId?: string; currencyId?: string; activeOnly?: boolean } & PageQuery) {
+    return this.http.get<PagedResponse<CorrespondentAccount>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll(params?: { correspondentId?: string; currencyId?: string; activeOnly?: boolean }) {
-    return this.http.get<CorrespondentAccount[]>(this.baseUrl, { params: toHttpParams(params) });
+    return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   getById(id: string) {
@@ -180,8 +223,12 @@ export class BeneficiariesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/beneficiaries`;
 
+  getPaged(params?: { activeOnly?: boolean } & PageQuery) {
+    return this.http.get<PagedResponse<Beneficiary>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll(params?: { activeOnly?: boolean }) {
-    return this.http.get<Beneficiary[]>(this.baseUrl, { params: toHttpParams(params) });
+    return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
@@ -210,8 +257,12 @@ export class CurrenciesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/currencies`;
 
+  getPaged(params?: PageQuery) {
+    return this.http.get<PagedResponse<Currency>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll() {
-    return this.http.get<Currency[]>(this.baseUrl);
+    return this.getPaged({ page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
@@ -228,18 +279,22 @@ export class CurrenciesApiService {
     });
   }
 
-  getBalances() {
-    return this.http.get<unknown[]>(`${this.baseUrl}/balances`);
+  getBalances(params?: PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/balances`, { params: toHttpParams(params) });
   }
 
-  getDailyValuation(valuationDate?: string) {
-    return this.http.get<unknown[]>(`${this.baseUrl}/daily-valuation`, {
-      params: toHttpParams({ valuationDate }),
+  getDailyValuation(valuationDate?: string, params?: PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/daily-valuation`, {
+      params: toHttpParams({ valuationDate, ...params }),
     });
   }
 
-  getExchangeRates(params?: { rateDate?: string; fromCurrencyId?: string; toCurrencyId?: string }) {
-    return this.http.get<unknown[]>(`${this.baseUrl}/exchange-rates`, { params: toHttpParams(params) });
+  getExchangeRates(
+    params?: { rateDate?: string; fromCurrencyId?: string; toCurrencyId?: string } & PageQuery,
+  ) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/exchange-rates`, {
+      params: toHttpParams(params),
+    });
   }
 
   addExchangeRate(payload: Record<string, unknown>) {
@@ -252,8 +307,10 @@ export class CurrenciesApiService {
     });
   }
 
-  getCorrespondentBalances() {
-    return this.http.get<unknown[]>(`${this.baseUrl}/correspondent-balances`);
+  getCorrespondentBalances(params?: PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/correspondent-balances`, {
+      params: toHttpParams(params),
+    });
   }
 }
 
@@ -283,7 +340,7 @@ export class TransfersApiService {
   }
 
   getCorrespondentAccountStatement(params: QueryParams) {
-    return this.http.get<unknown[]>(`${this.baseUrl}/Statement/GetCorrespondentAccountStatement`, {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/Statement/GetCorrespondentAccountStatement`, {
       params: toHttpParams(params),
     });
   }
@@ -294,9 +351,9 @@ export class TransfersApiService {
     });
   }
 
-  getCurrencyStatement(currencyId: string, asOfDate: string) {
-    return this.http.get<unknown[]>(`${this.baseUrl}/Statement/GetCurrencyStatement`, {
-      params: toHttpParams({ currencyId, asOfDate }),
+  getCurrencyStatement(currencyId: string, asOfDate: string, params?: PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/Statement/GetCurrencyStatement`, {
+      params: toHttpParams({ currencyId, asOfDate, ...params }),
     });
   }
 }
@@ -306,8 +363,12 @@ export class ObligationsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/obligations`;
 
+  getPaged(params?: PageQuery) {
+    return this.http.get<PagedResponse<Obligation>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll() {
-    return this.http.get<Obligation[]>(this.baseUrl);
+    return this.getPaged({ page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
@@ -340,8 +401,12 @@ export class ResourcesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/resources`;
 
+  getTypesPaged(params?: { activeOnly?: boolean } & PageQuery) {
+    return this.http.get<PagedResponse<ResourceType>>(`${this.baseUrl}/types`, { params: toHttpParams(params) });
+  }
+
   getTypes(params?: { activeOnly?: boolean }) {
-    return this.http.get<ResourceType[]>(`${this.baseUrl}/types`, { params: toHttpParams(params) });
+    return this.getTypesPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   createType(payload: Record<string, unknown>) {
@@ -362,8 +427,8 @@ export class ResourcesApiService {
     return this.http.post(this.baseUrl, { ...payload, createdBy: SYSTEM_USER });
   }
 
-  getStatement(correspondentAccountId: string, params?: { startDate?: string; endDate?: string }) {
-    return this.http.get<unknown[]>(`${this.baseUrl}/statement/${correspondentAccountId}`, {
+  getStatement(correspondentAccountId: string, params?: { startDate?: string; endDate?: string } & PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/statement/${correspondentAccountId}`, {
       params: toHttpParams(params),
     });
   }
@@ -378,8 +443,12 @@ export class DealsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/deals`;
 
+  getPaged(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string } & PageQuery) {
+    return this.http.get<PagedResponse<Deal>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string }) {
-    return this.http.get<Deal[]>(this.baseUrl, { params: toHttpParams(params) });
+    return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
@@ -396,8 +465,12 @@ export class CoveragesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/coverages`;
 
+  getPaged(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string } & PageQuery) {
+    return this.http.get<PagedResponse<Coverage>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string }) {
-    return this.http.get<Coverage[]>(this.baseUrl, { params: toHttpParams(params) });
+    return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
@@ -414,8 +487,12 @@ export class ReservesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/reserves`;
 
+  getPaged(params?: { startDate?: string; endDate?: string } & PageQuery) {
+    return this.http.get<PagedResponse<ReserveSnapshot>>(this.baseUrl, { params: toHttpParams(params) });
+  }
+
   getAll(params?: { startDate?: string; endDate?: string }) {
-    return this.http.get<ReserveSnapshot[]>(this.baseUrl, { params: toHttpParams(params) });
+    return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
@@ -433,15 +510,17 @@ export class ReportsApiService {
   private readonly baseUrl = `${environment.apiUrl}/reports`;
 
   getDashboard(asOfDate?: string) {
-    return this.http.get(`${this.baseUrl}/dashboard`, { params: toHttpParams({ asOfDate }) });
+    return this.http.get<DashboardSummary>(`${this.baseUrl}/dashboard`, { params: toHttpParams({ asOfDate }) });
   }
 
-  getForeignReserve(startDate: string, endDate: string) {
-    return this.http.get(`${this.baseUrl}/foreign-reserve`, { params: toHttpParams({ startDate, endDate }) });
+  getForeignReserve(startDate: string, endDate: string, params?: PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/foreign-reserve`, {
+      params: toHttpParams({ startDate, endDate, ...params }),
+    });
   }
 
-  getObligationsReport(params?: { startDate?: string; endDate?: string; status?: string }) {
-    return this.http.get(`${this.baseUrl}/obligations`, { params: toHttpParams(params) });
+  getObligationsReport(params?: { startDate?: string; endDate?: string; status?: string } & PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/obligations`, { params: toHttpParams(params) });
   }
 }
 
