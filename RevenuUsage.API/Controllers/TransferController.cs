@@ -43,10 +43,10 @@ namespace RevenuUsage.API.Controllers
                 request.BeneficiaryId,
                 request.Purpose,
                 request.ReferenceNo,
+                request.StatementDate,
                 request.CreatedBy,
                 request.TransferDate,
                 request.Amount,
-                request.transferId,
                 request.OperationTypeId,
                 request.ResourceTypeId,
                 request.UsageTypeId,
@@ -61,7 +61,7 @@ namespace RevenuUsage.API.Controllers
         public async Task<ActionResult> ConfirmTransfer([FromBody] ConfirmTransferDto request, CancellationToken cancellationToken)
         {
             var command = new ConfirmTransferCommand(
-                request.TransferId, request.ConfirmedBy);
+                request.TransferId, request.ReferenceNo, request.StatementDate, request.ConfirmedBy);
 
             await _mediator.Send(command, cancellationToken);
             return Ok(new { message = "Transfer Confirmed successfully" });

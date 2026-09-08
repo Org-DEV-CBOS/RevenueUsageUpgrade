@@ -1,0 +1,41 @@
+CREATE OR ALTER FUNCTION dbo.ufnUsdRates(@AsOfDate date)
+RETURNS TABLE
+AS
+RETURN
+    -- Resolves every currency to a multiplier that converts an amount held in that
+    -- currency into USD: AmountUsd = Amount * RateToUsd. This matches the direction
+    -- used elsewhere (dbo.uspCreateDeal computes ToAmount = FromAmount * ExchangeRate).
+    --
+    -- USD is identified by Symbol, not CurrencyCode: CurrencyCode is the legacy
+    -- numeric code (USD is '10'), while Symbol carries the ISO code.
+    --
+    -- RateToUsd is NULL when a currency has no published rate on or before @AsOfDate,
+    -- and every row is NULL if no USD currency row exists at all. Callers must decide
+    -- what to do with those rather than treating the amount as if it were already USD.
+    WITH usd AS (
+        SELECT TOP (1) CurrencyId
+        FROM dbo.Currencies
+        WHERE IsDeleted = 0
+          AND UPPER(LTRIM(RTRIM(Symbol))) = 'USD'
+        ORDER BY CurrencyId
+    )
+    SELECT
+        c.CurrencyId,
+        c.CurrencyCode,
+        c.Symbol,
+        CASE
+            WHEN c.CurrencyId = usd.CurrencyId THEN CAST(1 AS decimal(19, 8))
+            ELSE r.RateValue
+        END AS RateToUsd
+    FROM dbo.Currencies c
+    LEFT JOIN usd ON 1 = 1
+    OUTER APPLY (
+        SELECT TOP (1) x.RateValue
+        FROM dbo.ExchangeRates x
+        WHERE x.FromCurrencyId = c.CurrencyId
+          AND x.ToCurrencyId = usd.CurrencyId
+          AND x.RateDate <= @AsOfDate
+          AND x.DeletedTime IS NULL
+        ORDER BY x.RateDate DESC
+    ) r
+    WHERE c.IsDeleted = 0;

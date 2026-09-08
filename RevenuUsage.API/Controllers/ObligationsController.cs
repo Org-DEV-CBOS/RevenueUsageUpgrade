@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.Application.Common;
 using RevenuUsage.Application.DTOs;
+using RevenuUsage.Application.Features.Obligations;
 using RevenuUsage.Application.Features.Obligations.Commands.AddObligationPayment;
 using RevenuUsage.Application.Features.Obligations.Commands.DeleteObligationPayment;
 using RevenuUsage.Application.Features.Obligations.Queries.GetObligationStatement;
@@ -25,14 +26,67 @@ public class ObligationsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResponse<Obligation>>> GetAll(
         [FromQuery] bool activeOnly = true,
-        [FromQuery] string? clientType = null,
+        [FromQuery] Guid? clientTypeId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
         CancellationToken ct = default) =>
-        Ok(Paging.Create(await _mediator.Send(new GetObligationsQuery(activeOnly, clientType), ct), page, pageSize, pageNumber));
+        Ok(Paging.Create(await _mediator.Send(new GetObligationsQuery(activeOnly, clientTypeId), ct), page, pageSize, pageNumber));
     [HttpPost] public async Task<ActionResult> Create(CreateObligationCommand command,CancellationToken ct)=>Ok(new{obligationId=await _mediator.Send(command,ct)});
     [HttpDelete("{id:guid}")] public async Task<ActionResult> Delete(Guid id,[FromBody]DeleteMasterDataDto dto,CancellationToken ct){await _mediator.Send(new DeleteObligationCommand(id,dto.DeletedBy??string.Empty),ct);return NoContent();}
+
+    #region Client Types
+
+    /* Renaming and deactivating only. See ObligationTypeRequests for why there is no create. */
+
+    [HttpGet("client-types")]
+    public async Task<ActionResult<PagedResponse<ClientTypeDto>>> GetClientTypes(
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(await _mediator.Send(new GetClientTypesQuery(activeOnly), ct), page, pageSize, pageNumber));
+
+    [HttpPut("client-types/{id:guid}")]
+    public async Task<ActionResult> UpdateClientType(Guid id, [FromBody] SaveClientTypeDto model, CancellationToken ct)
+    {
+        await _mediator.Send(new UpdateClientTypeCommand(id, model), ct);
+        return NoContent();
+    }
+
+    #endregion
+
+    #region Obligation Types
+
+    [HttpGet("types")]
+    public async Task<ActionResult<PagedResponse<ObligationTypeDto>>> GetTypes(
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default) =>
+        Ok(Paging.Create(await _mediator.Send(new GetObligationTypesQuery(activeOnly), ct), page, pageSize, pageNumber));
+
+    [HttpPost("types")]
+    public async Task<ActionResult> CreateType([FromBody] SaveObligationTypeDto model, CancellationToken ct) =>
+        Ok(new { obligationTypeId = await _mediator.Send(new SaveObligationTypeCommand(model with { ObligationTypeId = null }), ct) });
+
+    [HttpPut("types/{id:guid}")]
+    public async Task<ActionResult> UpdateType(Guid id, [FromBody] SaveObligationTypeDto model, CancellationToken ct)
+    {
+        await _mediator.Send(new SaveObligationTypeCommand(model with { ObligationTypeId = id }), ct);
+        return NoContent();
+    }
+
+    [HttpDelete("types/{id:guid}")]
+    public async Task<ActionResult> DeleteType(Guid id, [FromBody] DeleteMasterDataDto model, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteObligationTypeCommand(id, model.DeletedBy), ct);
+        return NoContent();
+    }
+
+    #endregion
 
     /// <summary>
     /// Add a payment to an obligation

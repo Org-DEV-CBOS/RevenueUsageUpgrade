@@ -1,0 +1,45 @@
+CREATE OR ALTER PROCEDURE dbo.uspGetResources
+    @CorrespondentAccountId uniqueidentifier = NULL,
+    @ResourceTypeId uniqueidentifier = NULL,
+    @StartDate date = NULL,
+    @EndDate date = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        r.ResourceId,
+        r.ResourceDate,
+        r.CorrespondentAccountId,
+        a.AccountNumber,
+        c.CorrespondentId,
+        c.CorrespondentNameEn,
+        c.CorrespondentNameAr,
+        cur.CurrencyId,
+        cur.CurrencyCode,
+        cur.Symbol AS CurrencySymbol,
+        r.ResourceTypeId,
+        rt.ResourceTypeNameEn,
+        rt.ResourceTypeNameAr,
+        r.Amount,
+        r.Notes,
+        r.RemittingBankId,
+        b.BankNameEn AS RemittingBankNameEn,
+        b.BankNameAr AS RemittingBankNameAr,
+        r.ReferenceNo,
+        r.StatementDate,
+        r.CreatedBy,
+        r.CreatedTime
+    FROM dbo.Resources r
+    JOIN dbo.CorrespondentAccounts a ON a.CorrespondentAccountId = r.CorrespondentAccountId
+    JOIN dbo.Correspondents c ON c.CorrespondentId = a.CorrespondentId
+    JOIN dbo.Currencies cur ON cur.CurrencyId = a.CurrencyId
+    JOIN dbo.ResourceTypes rt ON rt.ResourceTypeId = r.ResourceTypeId
+    LEFT JOIN dbo.Banks b ON b.BankId = r.RemittingBankId
+    WHERE r.DeletedTime IS NULL
+      AND (@CorrespondentAccountId IS NULL OR r.CorrespondentAccountId = @CorrespondentAccountId)
+      AND (@ResourceTypeId IS NULL OR r.ResourceTypeId = @ResourceTypeId)
+      AND (@StartDate IS NULL OR r.ResourceDate >= @StartDate)
+      AND (@EndDate IS NULL OR r.ResourceDate <= @EndDate)
+    ORDER BY r.ResourceDate DESC, r.CreatedTime DESC;
+END;

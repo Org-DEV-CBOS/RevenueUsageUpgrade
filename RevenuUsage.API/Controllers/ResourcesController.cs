@@ -6,6 +6,7 @@ using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Resources.Commands.AddResourceToCorrespondentAccount;
 using RevenuUsage.Application.Features.Resources.Commands.DeleteResource;
 using RevenuUsage.Application.Features.Resources.Queries.GetResourceStatement;
+using RevenuUsage.Application.Features.Resources.Queries.GetResources;
 using RevenuUsage.Application.Features.MasterData;
 
 namespace RevenuUsage.API.Controllers;
@@ -38,6 +39,26 @@ public class ResourcesController : ControllerBase
     public async Task<ActionResult> DeleteType(Guid id,[FromBody] DeleteMasterDataDto model,CancellationToken ct){await _mediator.Send(new DeleteResourceTypeCommand(id,model.DeletedBy),ct);return NoContent();}
 
     /// <summary>
+    /// List recorded resources (credits) across accounts
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult> GetResources(
+        [FromQuery] Guid? correspondentAccountId,
+        [FromQuery] Guid? resourceTypeId,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] int pageNumber = 0,
+        CancellationToken ct = default)
+    {
+        var rows = await _mediator.Send(
+            new GetResourcesQuery(correspondentAccountId, resourceTypeId, startDate, endDate),
+            ct);
+        return Ok(Paging.Create(rows, page, pageSize, pageNumber));
+    }
+
+    /// <summary>
     /// Add a resource to a correspondent account
     /// </summary>
     [HttpPost]
@@ -54,6 +75,9 @@ public class ResourcesController : ControllerBase
             request.Amount,
             request.ResourceTypeId,
             request.Notes,
+            request.RemittingBankId,
+            request.ReferenceNo,
+            request.StatementDate,
             request.CreatedBy);
 
         await _mediator.Send(command, cancellationToken);

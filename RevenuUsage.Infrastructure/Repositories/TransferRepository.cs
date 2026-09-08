@@ -85,6 +85,8 @@ namespace RevenuUsage.Infrastructure.Repositories
                 var parameters = new DynamicParameters();
 
                 parameters.Add("@TransferId", confirmTransfer.TransferId, DbType.Guid, size: 450);
+                parameters.Add("@ReferenceNo", confirmTransfer.ReferenceNo, DbType.String, size: 100);
+                parameters.Add("@StatementDate", confirmTransfer.StatementDate, DbType.Date);
                 parameters.Add("@ConfirmedBy", confirmTransfer.ConfirmedBy, DbType.String);
 
                 await _connection.ExecuteAsync(
@@ -121,6 +123,7 @@ namespace RevenuUsage.Infrastructure.Repositories
                 parameters.Add("@Amount", createTransfer.Amount, DbType.Decimal, size: 450);
                 parameters.Add("@Purpose", createTransfer.Purpose, DbType.String);
                 parameters.Add("@ReferenceNo", createTransfer.ReferenceNo, DbType.String);
+                parameters.Add("@StatementDate", createTransfer.StatementDate, DbType.Date);
                 parameters.Add("@OperationTypeId", createTransfer.OperationTypeId, DbType.Guid);
                 parameters.Add("@ResourceTypeId", createTransfer.ResourceTypeId, DbType.Guid);
                 parameters.Add("@UsageTypeId", createTransfer.UsageTypeId, DbType.Guid);

@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { Country } from '../../core/models/country.model';
-import { SYSTEM_USER } from '../../core/constants/system-user';
+import { AuthService } from '../../core/auth/auth.service';
 import { LookupsApiService } from '../../core/services/api.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -58,6 +58,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 })
 export class CountryListComponent implements OnInit {
   private readonly api = inject(LookupsApiService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
@@ -90,7 +91,7 @@ export class CountryListComponent implements OnInit {
     this.api
       .deleteCountry(country.countryId, {
         countryId: country.countryId,
-        deletedBy: SYSTEM_USER,
+        deletedBy: this.auth.actor(),
       })
       .subscribe({
         next: () => {
@@ -140,6 +141,7 @@ export class CountryListComponent implements OnInit {
 })
 export class CountryFormComponent implements OnInit {
   private readonly api = inject(LookupsApiService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
@@ -174,7 +176,7 @@ export class CountryFormComponent implements OnInit {
     }
 
     const value = this.form.getRawValue();
-    const actor = SYSTEM_USER;
+    const actor = this.auth.actor();
     const request$ = this.isEdit
       ? this.api.updateCountry(this.countryId, { countryId: this.countryId, ...value, modifiedBy: actor })
       : this.api.createCountry({ ...value, createdBy: actor });

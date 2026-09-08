@@ -64,6 +64,7 @@ public static class ReportExportBuilder
         {
             "Client Name",
             "Client Type",
+            "Obligation Type",
             "Currency",
             "Total Amount",
             "Paid Amount",
@@ -81,17 +82,18 @@ public static class ReportExportBuilder
             var r = i + 2;
             ws.Cell(r, 1).Value = row.ClientName;
             ws.Cell(r, 2).Value = row.ClientType;
-            ws.Cell(r, 3).Value = row.CurrencyCode;
-            ws.Cell(r, 4).Value = row.TotalAmount;
-            ws.Cell(r, 5).Value = row.PaidAmount;
-            ws.Cell(r, 6).Value = row.RemainingAmount;
-            ws.Cell(r, 7).Value = row.DueDate;
-            ws.Cell(r, 8).Value = row.Status;
+            ws.Cell(r, 3).Value = row.ObligationType ?? string.Empty;
+            ws.Cell(r, 4).Value = row.CurrencySymbol ?? row.CurrencyCode;
+            ws.Cell(r, 5).Value = row.TotalAmount;
+            ws.Cell(r, 6).Value = row.PaidAmount;
+            ws.Cell(r, 7).Value = row.RemainingAmount;
+            ws.Cell(r, 8).Value = row.DueDate;
+            ws.Cell(r, 9).Value = row.Status;
         }
 
-        for (var col = 4; col <= 6; col++)
+        for (var col = 5; col <= 7; col++)
             ws.Column(col).Style.NumberFormat.Format = "#,##0.00";
-        ws.Column(7).Style.DateFormat.Format = "yyyy-mm-dd";
+        ws.Column(8).Style.DateFormat.Format = "yyyy-mm-dd";
 
         ws.Range(1, 1, 1, headers.Length).Style.Font.Bold = true;
         ws.Range(1, 1, rows.Count + 1, headers.Length).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -165,6 +167,7 @@ public static class ReportExportBuilder
                     {
                         columns.RelativeColumn(2);
                         columns.RelativeColumn();
+                        columns.RelativeColumn(2);
                         columns.RelativeColumn();
                         columns.RelativeColumn();
                         columns.RelativeColumn();
@@ -175,6 +178,7 @@ public static class ReportExportBuilder
 
                     AddCell(table, "Client Name", true);
                     AddCell(table, "Client Type", true);
+                    AddCell(table, "Obligation Type", true);
                     AddCell(table, "Currency", true);
                     AddCell(table, "Total", true);
                     AddCell(table, "Paid", true);
@@ -186,7 +190,8 @@ public static class ReportExportBuilder
                     {
                         AddCell(table, row.ClientName);
                         AddCell(table, row.ClientType);
-                        AddCell(table, row.CurrencyCode);
+                        AddCell(table, row.ObligationType ?? string.Empty);
+                        AddCell(table, row.CurrencySymbol ?? row.CurrencyCode);
                         AddCell(table, row.TotalAmount.ToString("N2"));
                         AddCell(table, row.PaidAmount.ToString("N2"));
                         AddCell(table, row.RemainingAmount.ToString("N2"));
@@ -286,7 +291,7 @@ public static class ReportExportBuilder
             var row = rows[i];
             var r = i + 2;
             ws.Cell(r, 1).Value = row.CorrespondentNameEn;
-            ws.Cell(r, 2).Value = row.CurrencyCode;
+            ws.Cell(r, 2).Value = row.CurrencySymbol ?? row.CurrencyCode;
             ws.Cell(r, 3).Value = row.AccountNumber;
             ws.Cell(r, 4).Value = row.CurrentBalance;
         }
@@ -308,7 +313,7 @@ public static class ReportExportBuilder
             rows.Select(row => new[]
             {
                 row.CorrespondentNameEn,
-                row.CurrencyCode,
+                row.CurrencySymbol ?? row.CurrencyCode,
                 row.AccountNumber,
                 row.CurrentBalance.ToString("N2")
             }).ToList());

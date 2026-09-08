@@ -1,36 +1,46 @@
-
-CREATE OR ALTER PROCEDURE dbo.uspGetObligations
-    @ActiveOnly bit = 1,
-    @ClientType nvarchar(20) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT
-        o.ObligationId,
-        o.ObligationDate,
-        o.ClientName,
-        o.ClientType,
-        o.BankId,
-        o.CompanyId,
-        b.bankNameEn AS BankName,
-        cm.companyNameEn AS CompanyName,
-        o.CurrencyId,
-        c.CurrencyNameAr,
-        c.CurrencyNameEn,
-        o.TotalAmount,
-        o.PaidAmount,
-        o.TotalAmount - o.PaidAmount AS RemainingAmount,
-        o.DueDate,
-        o.ReferenceNo,
-        o.Notes,
-        o.IsActive
-    FROM dbo.Obligations o
-    JOIN dbo.Currencies c ON c.CurrencyId = o.CurrencyId
-    LEFT JOIN dbo.banks b ON b.bankId = o.BankId
-    LEFT JOIN dbo.companies cm ON cm.companyId = o.CompanyId
-    WHERE o.DeletedTime IS NULL
-      AND (@ActiveOnly = 0 OR o.IsActive = 1)
-      AND (@ClientType IS NULL OR o.ClientType = @ClientType)
-    ORDER BY o.ObligationDate DESC;
-END;
+CREATE OR ALTER PROCEDURE dbo.uspGetObligations
+    @ActiveOnly bit = 1,
+    @ClientTypeId uniqueidentifier = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        o.ObligationId,
+        o.ObligationDate,
+        o.ClientTypeId,
+        ct.ClientTypeCode,
+        ct.ClientTypeNameEn,
+        ct.ClientTypeNameAr,
+        o.ObligationTypeId,
+        ot.ObligationTypeNameEn,
+        ot.ObligationTypeNameAr,
+        o.BankId,
+        o.CompanyId,
+        b.BankNameEn AS BankName,
+        cm.CompanyNameEn AS CompanyName,
+        /* The client is whichever of the two is set, so the list needs one name column. */
+        COALESCE(b.BankNameEn, cm.CompanyNameEn) AS ClientNameEn,
+        COALESCE(b.BankNameAr, cm.CompanyNameAr) AS ClientNameAr,
+        o.CurrencyId,
+        c.CurrencyNameAr,
+        c.CurrencyNameEn,
+        c.Symbol AS CurrencySymbol,
+        o.TotalAmount,
+        o.PaidAmount,
+        o.TotalAmount - o.PaidAmount AS RemainingAmount,
+        o.DueDate,
+        o.ReferenceNo,
+        o.Notes,
+        o.IsActive
+    FROM dbo.Obligations o
+    JOIN dbo.Currencies c ON c.CurrencyId = o.CurrencyId
+    JOIN dbo.ClientTypes ct ON ct.ClientTypeId = o.ClientTypeId
+    LEFT JOIN dbo.ObligationTypes ot ON ot.ObligationTypeId = o.ObligationTypeId
+    LEFT JOIN dbo.banks b ON b.bankId = o.BankId
+    LEFT JOIN dbo.companies cm ON cm.companyId = o.CompanyId
+    WHERE o.DeletedTime IS NULL
+      AND (@ActiveOnly = 0 OR o.IsActive = 1)
+      AND (@ClientTypeId IS NULL OR o.ClientTypeId = @ClientTypeId)
+    ORDER BY o.ObligationDate DESC;
+END;

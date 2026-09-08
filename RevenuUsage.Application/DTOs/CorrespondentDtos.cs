@@ -33,6 +33,7 @@ public sealed record CorrespondentAccountDto(
     string? CorrespondentNameAr,
     Guid CurrencyId,
     string CurrencyCode,
+    string? CurrencySymbol,
     string? CurrencyNameEn,
     string? CurrencyNameAr,
     string AccountNumber,

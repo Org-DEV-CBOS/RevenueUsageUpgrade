@@ -1,1 +1,64 @@
-CREATE OR ALTER PROCEDURE dbo.uspConfirmTransfer @TransferId uniqueidentifier,@ConfirmedBy nvarchar(100) AS BEGIN SET XACT_ABORT ON;BEGIN TRAN;DECLARE @a uniqueidentifier,@v decimal(19,4),@s nvarchar(20);SELECT @a=CorrespondentAccountId,@v=Amount,@s=TransferStatus FROM dbo.Transfers WITH(UPDLOCK) WHERE TransferId=@TransferId AND DeletedTime IS NULL;IF @s<>'Pending' THROW 52010,'Only pending transfers can be confirmed.',1;UPDATE dbo.CorrespondentAccounts WITH(UPDLOCK) SET CurrentBalance=CurrentBalance-@v WHERE CorrespondentAccountId=@a AND CurrentBalance>=@v AND IsActive=1 AND IsDeleted=0;IF @@ROWCOUNT=0 THROW 52011,'Insufficient account balance.',1;UPDATE dbo.Transfers SET TransferStatus='Confirmed',ConfirmedTime=SYSUTCDATETIME(),ConfirmedBy=@ConfirmedBy WHERE TransferId=@TransferId;COMMIT;END;
+CREATE OR ALTER PROCEDURE dbo.uspConfirmTransfer
+    @TransferId uniqueidentifier,
+    @ReferenceNo nvarchar(100) = NULL,
+    @StatementDate date = NULL,
+    @ConfirmedBy nvarchar(100)
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    SET NOCOUNT ON;
+
+    BEGIN TRAN;
+
+    DECLARE @accountId uniqueidentifier,
+            @amount decimal(19, 4),
+            @status nvarchar(20),
+            @reference nvarchar(100),
+            @statement date;
+
+    SELECT
+        @accountId = CorrespondentAccountId,
+        @amount = Amount,
+        @status = TransferStatus,
+        @reference = ReferenceNo,
+        @statement = StatementDate
+    FROM dbo.Transfers WITH (UPDLOCK)
+    WHERE TransferId = @TransferId AND DeletedTime IS NULL;
+
+    IF @status IS NULL
+        THROW 52013, 'Transfer not found.', 1;
+
+    IF @status <> 'Pending'
+        THROW 52010, 'Only pending transfers can be confirmed.', 1;
+
+    -- Both are optional while Pending but required to confirm. The caller may
+    -- supply them here, otherwise whatever was captured at creation is used.
+    SET @reference = COALESCE(NULLIF(LTRIM(RTRIM(@ReferenceNo)), N''), @reference);
+    SET @statement = COALESCE(@StatementDate, @statement);
+
+    IF @reference IS NULL
+        THROW 52015, 'A reference number is required to confirm a transfer.', 1;
+
+    IF @statement IS NULL
+        THROW 52016, 'A statement date is required to confirm a transfer.', 1;
+
+    UPDATE dbo.CorrespondentAccounts WITH (UPDLOCK)
+    SET CurrentBalance = CurrentBalance - @amount
+    WHERE CorrespondentAccountId = @accountId
+      AND CurrentBalance >= @amount
+      AND IsActive = 1
+      AND IsDeleted = 0;
+
+    IF @@ROWCOUNT = 0
+        THROW 52011, 'Insufficient account balance.', 1;
+
+    UPDATE dbo.Transfers
+    SET TransferStatus = 'Confirmed',
+        ReferenceNo = @reference,
+        StatementDate = @statement,
+        ConfirmedTime = SYSUTCDATETIME(),
+        ConfirmedBy = @ConfirmedBy
+    WHERE TransferId = @TransferId;
+
+    COMMIT;
+END;

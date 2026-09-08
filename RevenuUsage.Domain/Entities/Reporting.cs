@@ -9,6 +9,13 @@ public sealed class DashboardSummary
     public decimal NetPositionUsd { get; set; }
     public decimal OutstandingObligationsUsd { get; set; }
     public decimal ReserveTotalUsd { get; set; }
+
+    /// <summary>
+    /// Currencies holding a non-zero balance that have no published USD rate, and so
+    /// are missing from the totals above.
+    /// </summary>
+    public int UnconvertedCurrencyCount { get; set; }
+
     public int CorrespondentCount { get; set; }
     public int AccountCount { get; set; }
     public int PendingTransferCount { get; set; }
@@ -23,7 +30,7 @@ public sealed class DashboardSummary
 }
 
 public sealed class ForeignReserveReportRow{public DateTime ReportDate{get;set;}public decimal CorrespondentBalancesUsd{get;set;}public decimal CashInHandUsd{get;set;}public decimal GoldValueUsd{get;set;}public decimal DepositsUsd{get;set;}public decimal ResourcesUsd{get;set;}public decimal UsagesUsd{get;set;}public decimal GrandTotalUsd{get;set;}}
-public sealed class ObligationReportRow{public Guid ObligationId{get;set;}public string ClientName{get;set;}=string.Empty;public string ClientType{get;set;}=ObligationClientTypes.Other;public string CurrencyCode{get;set;}=string.Empty;public decimal TotalAmount{get;set;}public decimal PaidAmount{get;set;}public decimal RemainingAmount{get;set;}public DateTime? DueDate{get;set;}public string Status{get;set;}=string.Empty;}
+public sealed class ObligationReportRow{public Guid ObligationId{get;set;}public string ClientName{get;set;}=string.Empty;public string ClientType{get;set;}=string.Empty;public string? ObligationType{get;set;}public string CurrencyCode{get;set;}=string.Empty;public string? CurrencySymbol{get;set;}public decimal TotalAmount{get;set;}public decimal PaidAmount{get;set;}public decimal RemainingAmount{get;set;}public DateTime? DueDate{get;set;}public string Status{get;set;}=string.Empty;}
 public sealed class MovementReportRow{public string GroupName{get;set;}=string.Empty;public decimal TotalAmount{get;set;}}
 public sealed class ResourceSummaryReportRow{public string ResourceTypeName{get;set;}=string.Empty;public decimal TotalAmount{get;set;}}
-public sealed class CorrespondentBalanceReportRow{public string CorrespondentNameEn{get;set;}=string.Empty;public string CurrencyCode{get;set;}=string.Empty;public string AccountNumber{get;set;}=string.Empty;public decimal CurrentBalance{get;set;}}
+public sealed class CorrespondentBalanceReportRow{public string CorrespondentNameEn{get;set;}=string.Empty;public string CurrencyCode{get;set;}=string.Empty;public string? CurrencySymbol{get;set;}public string AccountNumber{get;set;}=string.Empty;public decimal CurrentBalance{get;set;}}

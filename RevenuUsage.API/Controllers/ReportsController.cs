@@ -45,13 +45,13 @@ public sealed class ReportsController : ControllerBase
         DateTime? startDate,
         DateTime? endDate,
         string? status,
-        string? clientType,
+        Guid? clientTypeId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
         CancellationToken ct = default)
     {
-        var rows = await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientType), ct);
+        var rows = await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientTypeId), ct);
         return Ok(Paging.Create(rows, page, pageSize, pageNumber));
     }
 
@@ -140,11 +140,11 @@ public sealed class ReportsController : ControllerBase
         DateTime? startDate,
         DateTime? endDate,
         string? status,
-        string? clientType,
+        Guid? clientTypeId,
         [FromQuery] string format = "xlsx",
         CancellationToken ct = default)
     {
-        var rows = (await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientType), ct)).ToList();
+        var rows = (await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientTypeId), ct)).ToList();
         var now = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
 
         if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))

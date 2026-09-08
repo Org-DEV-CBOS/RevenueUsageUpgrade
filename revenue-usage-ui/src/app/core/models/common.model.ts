@@ -6,6 +6,8 @@ export interface DashboardSummary {
   netPositionUsd: number;
   outstandingObligationsUsd: number;
   reserveTotalUsd: number;
+  /** Currencies with a balance but no published USD rate, so excluded from the totals. */
+  unconvertedCurrencyCount: number;
   correspondentCount: number;
   accountCount: number;
   pendingTransferCount: number;
@@ -42,9 +44,11 @@ export interface TransferListItem {
   beneficiaryName: string;
   currencyId?: string;
   currencyCode: string;
+  currencySymbol?: string;
   amount: number;
-  purpose: string;
-  referenceNo: string;
+  purpose?: string | null;
+  referenceNo?: string | null;
+  statementDate?: string | null;
   transferStatus: string;
   confirmedTime?: string;
   rejectedTime?: string;
@@ -54,16 +58,13 @@ export interface TransferListItem {
 export interface CreateTransferRequest {
   correspondentAccountId: string;
   beneficiaryId: string;
-  purpose: string;
-  referenceNo: string;
+  /** Optional while Pending; a reference and statement date are required to confirm. */
+  purpose?: string | null;
+  referenceNo?: string | null;
+  statementDate?: string | null;
   createdBy?: string;
   transferDate: string;
   amount: number;
-  transferId: string;
-  operationTypeId: string;
-  resourceTypeId: string;
-  usageTypeId: string;
-  bankId: string;
 }
 
 export interface Correspondent {
@@ -84,6 +85,7 @@ export interface CorrespondentAccount {
   correspondentNameAr?: string;
   currencyId: string;
   currencyCode: string;
+  currencySymbol?: string;
   currencyNameEn?: string;
   currencyNameAr?: string;
   accountNumber: string;
@@ -122,29 +124,198 @@ export interface ResourceType {
   hasMovements: boolean;
 }
 
+/** Matches dbo.ClientTypes.ClientTypeCode; the display names are admin-editable. */
+export type ClientTypeCode = 'BANK' | 'COMPANY';
+
+export interface ClientType {
+  clientTypeId: string;
+  clientTypeCode: ClientTypeCode;
+  clientTypeNameEn: string;
+  clientTypeNameAr?: string;
+  isActive: boolean;
+  hasMovements: boolean;
+}
+
+export interface ObligationType {
+  obligationTypeId: string;
+  obligationTypeNameEn: string;
+  obligationTypeNameAr?: string;
+  isActive: boolean;
+  hasMovements: boolean;
+}
+
 export interface Obligation {
   obligationId: string;
-  obligationCode?: string;
-  obligationNameEn?: string;
-  obligationNameAr?: string;
-  totalAmount?: number;
-  paidAmount?: number;
-  remainingAmount?: number;
-  isActive?: boolean;
-  [key: string]: unknown;
+  obligationDate: string;
+  clientTypeId: string;
+  clientTypeCode?: ClientTypeCode;
+  clientTypeNameEn?: string;
+  clientTypeNameAr?: string;
+  /** Company clients only. */
+  obligationTypeId?: string;
+  obligationTypeNameEn?: string;
+  obligationTypeNameAr?: string;
+  bankId?: string;
+  companyId?: string;
+  bankName?: string;
+  companyName?: string;
+  /** Whichever of the bank or the company the client type points at. */
+  clientNameEn?: string;
+  clientNameAr?: string;
+  currencyId: string;
+  currencyCode?: string;
+  currencyNameEn?: string;
+  currencyNameAr?: string;
+  currencySymbol?: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  dueDate?: string;
+  referenceNo?: string;
+  notes?: string;
+  isActive: boolean;
+}
+
+export interface ObligationPayment {
+  obligationPaymentId: string;
+  obligationId: string;
+  paymentDate: string;
+  amount: number;
+  referenceNo?: string;
+  notes?: string;
+  createdBy?: string;
+  createdTime?: string;
+}
+
+export interface ObligationStatement {
+  /** The statement endpoint omits the list-only fields, so this is a subset of Obligation. */
+  obligation: Omit<Obligation, 'isActive'>;
+  payments: ObligationPayment[];
 }
 
 export interface Deal {
   dealId: string;
-  [key: string]: unknown;
+  fromCorrespondentAccountId: string;
+  fromCorrespondentName: string;
+  fromCurrencyCode: string;
+  fromCurrencySymbol?: string;
+  toCorrespondentAccountId: string;
+  toCorrespondentName: string;
+  toCurrencyCode: string;
+  toCurrencySymbol?: string;
+  fromAmount: number;
+  exchangeRate: number;
+  toAmount: number;
+  referenceNo?: string;
+  narration?: string;
+  transactionDate: string;
 }
 
 export interface Coverage {
   coverageId: string;
-  [key: string]: unknown;
+  fromCorrespondentAccountId: string;
+  fromCorrespondentName: string;
+  toCorrespondentAccountId: string;
+  toCorrespondentName: string;
+  currencyId: string;
+  currencyCode: string;
+  currencySymbol?: string;
+  amount: number;
+  referenceNo?: string;
+  narration?: string;
+  transactionDate: string;
 }
 
 export interface ReserveSnapshot {
   reserveSnapshotId: string;
-  [key: string]: unknown;
+  reserveDate: string;
+  goldValue: number;
+  cashInHand: number;
+  deposits: number;
+  totalValue: number;
+  notes?: string;
+}
+
+export interface ResourceListItem {
+  resourceId: string;
+  resourceDate: string;
+  correspondentAccountId: string;
+  accountNumber: string;
+  correspondentId: string;
+  correspondentNameEn: string;
+  correspondentNameAr?: string;
+  currencyId: string;
+  currencyCode: string;
+  currencySymbol?: string;
+  resourceTypeId: string;
+  resourceTypeNameEn: string;
+  resourceTypeNameAr?: string;
+  amount: number;
+  notes?: string;
+  remittingBankId?: string | null;
+  remittingBankNameEn?: string;
+  remittingBankNameAr?: string;
+  referenceNo?: string;
+  statementDate?: string | null;
+  createdBy?: string;
+  createdTime?: string;
+}
+
+export interface AccountStatementRow {
+  /** The brought-forward row that opens the statement; a balance, not a movement. */
+  isOpening: boolean;
+  eventDate?: string;
+  eventType?: string;
+  amountIn: number;
+  amountOut: number;
+  runningBalance: number;
+  notes?: string;
+}
+
+export interface CurrencyStatementRow {
+  correspondentAccountId: string;
+  accountNumber: string;
+  accountName: string;
+  currentBalance: number;
+  totalResources: number;
+  totalCoverageIn: number;
+  totalCoverageOut: number;
+  totalConfirmedTransfers: number;
+  netBalance: number;
+}
+
+export interface FinalBankPosition {
+  positionDate: string;
+  cashInHandUsd: number;
+  goldValueUsd: number;
+  totalCorrespondentBalancesUsd: number;
+  bankNetPositionUsd: number;
+}
+
+export interface MovementReportRow {
+  groupName: string;
+  totalAmount: number;
+}
+
+export interface ExchangeRateRow {
+  exchangeRateId: string;
+  rateDate: string;
+  fromCurrencyId: string;
+  fromCurrencyCode: string;
+  fromCurrencyNameEn?: string;
+  fromCurrencyNameAr?: string;
+  fromCurrencySymbol?: string;
+  toCurrencyId: string;
+  toCurrencyCode: string;
+  rateValue: number;
+}
+
+/** Rate between two currencies, derived through USD. `rateValue` is null if unpublished. */
+export interface CrossRate {
+  rateDate: string;
+  fromCurrencyId: string;
+  toCurrencyId: string;
+  fromRateToUsd: number | null;
+  toRateToUsd: number | null;
+  rateValue: number | null;
 }

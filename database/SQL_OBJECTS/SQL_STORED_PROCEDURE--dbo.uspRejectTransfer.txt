@@ -1,1 +1,24 @@
-CREATE OR ALTER PROCEDURE dbo.uspRejectTransfer @TransferId uniqueidentifier,@RejectedBy nvarchar(100),@RejectReason nvarchar(500)=NULL AS UPDATE dbo.Transfers SET TransferStatus='Rejected',RejectedTime=SYSUTCDATETIME(),RejectedBy=@RejectedBy,RejectReason=@RejectReason WHERE TransferId=@TransferId AND TransferStatus='Pending' AND DeletedTime IS NULL;
+CREATE OR ALTER PROCEDURE dbo.uspRejectTransfer
+    @TransferId uniqueidentifier,
+    @RejectedBy nvarchar(100),
+    @RejectReason nvarchar(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Status nvarchar(20);
+
+    SELECT @Status = TransferStatus
+    FROM dbo.Transfers WITH (UPDLOCK)
+    WHERE TransferId = @TransferId AND DeletedTime IS NULL;
+
+    IF @Status IS NULL THROW 52013, 'Transfer not found.', 1;
+    IF @Status <> 'Pending' THROW 52014, 'Only pending transfers can be rejected.', 1;
+
+    UPDATE dbo.Transfers
+    SET TransferStatus = 'Rejected',
+        RejectedTime = SYSUTCDATETIME(),
+        RejectedBy = @RejectedBy,
+        RejectReason = @RejectReason
+    WHERE TransferId = @TransferId;
+END;

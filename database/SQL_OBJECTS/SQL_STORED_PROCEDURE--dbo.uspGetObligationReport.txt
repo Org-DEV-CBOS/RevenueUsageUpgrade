@@ -1,37 +1,42 @@
-
-CREATE OR ALTER PROCEDURE dbo.uspGetObligationReport
-    @StartDate date = NULL,
-    @EndDate date = NULL,
-    @Status nvarchar(20) = NULL,
-    @ClientType nvarchar(20) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT
-        o.ObligationId,
-        o.ClientName,
-        o.ClientType,
-        c.CurrencyCode,
-        o.TotalAmount,
-        o.PaidAmount,
-        o.TotalAmount - o.PaidAmount AS RemainingAmount,
-        o.DueDate,
-        CASE
-            WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
-            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
-            ELSE 'Open'
-        END AS Status
-    FROM dbo.Obligations o
-    JOIN dbo.Currencies c ON c.CurrencyId = o.CurrencyId
-    WHERE o.DeletedTime IS NULL
-      AND (@StartDate IS NULL OR o.ObligationDate >= @StartDate)
-      AND (@EndDate IS NULL OR o.ObligationDate <= @EndDate)
-      AND (@ClientType IS NULL OR o.ClientType = @ClientType)
-      AND (@Status IS NULL OR @Status = CASE
-            WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
-            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
-            ELSE 'Open'
-        END)
-    ORDER BY o.DueDate;
-END;
+CREATE OR ALTER PROCEDURE dbo.uspGetObligationReport
+    @StartDate date = NULL,
+    @EndDate date = NULL,
+    @Status nvarchar(20) = NULL,
+    @ClientTypeId uniqueidentifier = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        o.ObligationId,
+        COALESCE(b.BankNameEn, cm.CompanyNameEn) AS ClientName,
+        ct.ClientTypeNameEn AS ClientType,
+        ot.ObligationTypeNameEn AS ObligationType,
+        c.CurrencyCode,
+        c.Symbol AS CurrencySymbol,
+        o.TotalAmount,
+        o.PaidAmount,
+        o.TotalAmount - o.PaidAmount AS RemainingAmount,
+        o.DueDate,
+        CASE
+            WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
+            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
+            ELSE 'Open'
+        END AS Status
+    FROM dbo.Obligations o
+    JOIN dbo.Currencies c ON c.CurrencyId = o.CurrencyId
+    JOIN dbo.ClientTypes ct ON ct.ClientTypeId = o.ClientTypeId
+    LEFT JOIN dbo.ObligationTypes ot ON ot.ObligationTypeId = o.ObligationTypeId
+    LEFT JOIN dbo.banks b ON b.bankId = o.BankId
+    LEFT JOIN dbo.companies cm ON cm.companyId = o.CompanyId
+    WHERE o.DeletedTime IS NULL
+      AND (@StartDate IS NULL OR o.ObligationDate >= @StartDate)
+      AND (@EndDate IS NULL OR o.ObligationDate <= @EndDate)
+      AND (@ClientTypeId IS NULL OR o.ClientTypeId = @ClientTypeId)
+      AND (@Status IS NULL OR @Status = CASE
+            WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
+            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
+            ELSE 'Open'
+        END)
+    ORDER BY o.DueDate;
+END;

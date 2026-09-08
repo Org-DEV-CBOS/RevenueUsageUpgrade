@@ -1,46 +1,65 @@
-
-CREATE OR ALTER PROCEDURE dbo.uspCreateObligation
-    @ObligationDate date,
-    @ClientName nvarchar(200) = NULL,
-    @CurrencyId uniqueidentifier,
-    @TotalAmount decimal(19,4),
-    @DueDate date = NULL,
-    @ReferenceNo nvarchar(100) = NULL,
-    @Notes nvarchar(500) = NULL,
-    @ClientType nvarchar(20) = 'Other',
-    @BankId uniqueidentifier = NULL,
-    @CompanyId uniqueidentifier = NULL,
-    @CreatedBy nvarchar(100)
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SET @ClientType = ISNULL(NULLIF(LTRIM(RTRIM(@ClientType)), ''), 'Other');
-    IF @ClientType NOT IN ('Bank', 'Company', 'Other')
-        THROW 51010, 'ClientType must be Bank, Company or Other.', 1;
-
-    IF @ClientType = 'Bank' AND @BankId IS NULL
-        THROW 51011, 'BankId is required when ClientType is Bank.', 1;
-    IF @ClientType = 'Company' AND @CompanyId IS NULL
-        THROW 51012, 'CompanyId is required when ClientType is Company.', 1;
-
-    IF @ClientType <> 'Bank' SET @BankId = NULL;
-    IF @ClientType <> 'Company' SET @CompanyId = NULL;
-
-    IF @BankId IS NOT NULL
-        SELECT @ClientName = ISNULL(NULLIF(@ClientName, ''), b.bankNameEn)
-        FROM dbo.banks b WHERE b.bankId = @BankId;
-
-    IF @CompanyId IS NOT NULL
-        SELECT @ClientName = ISNULL(NULLIF(@ClientName, ''), cm.companyNameEn)
-        FROM dbo.companies cm WHERE cm.companyId = @CompanyId;
-
-    IF NULLIF(LTRIM(RTRIM(ISNULL(@ClientName, ''))), '') IS NULL
-        THROW 51013, 'ClientName is required.', 1;
-
-    INSERT dbo.Obligations
-        (ObligationDate, ClientName, ClientType, BankId, CompanyId, CurrencyId, TotalAmount, DueDate, ReferenceNo, Notes, CreatedBy)
-    OUTPUT inserted.ObligationId
-    VALUES
-        (@ObligationDate, @ClientName, @ClientType, @BankId, @CompanyId, @CurrencyId, @TotalAmount, @DueDate, @ReferenceNo, @Notes, @CreatedBy);
-END;
+CREATE OR ALTER PROCEDURE dbo.uspCreateObligation
+    @ObligationDate date,
+    @ClientTypeId uniqueidentifier,
+    @CurrencyId uniqueidentifier,
+    @TotalAmount decimal(19,4),
+    @DueDate date = NULL,
+    @ReferenceNo nvarchar(100) = NULL,
+    @Notes nvarchar(500) = NULL,
+    @ObligationTypeId uniqueidentifier = NULL,
+    @BankId uniqueidentifier = NULL,
+    @CompanyId uniqueidentifier = NULL,
+    @CreatedBy nvarchar(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    /*
+    The client is either a bank or a company, decided by ClientTypes.ClientTypeCode.
+    Bank clients have no obligation type; company clients must have one. Whichever id
+    does not belong to the chosen type is discarded rather than stored alongside it.
+    */
+
+    DECLARE @clientTypeCode nvarchar(50);
+
+    SELECT @clientTypeCode = ClientTypeCode
+    FROM dbo.ClientTypes
+    WHERE ClientTypeId = @ClientTypeId AND IsActive = 1;
+
+    IF @clientTypeCode IS NULL
+        THROW 51010, 'Client type not found or inactive.', 1;
+
+    IF @clientTypeCode = 'BANK'
+    BEGIN
+        IF @BankId IS NULL
+            THROW 51011, 'A bank is required for a bank client.', 1;
+
+        SET @CompanyId = NULL;
+        SET @ObligationTypeId = NULL;
+    END
+    ELSE IF @clientTypeCode = 'COMPANY'
+    BEGIN
+        IF @CompanyId IS NULL
+            THROW 51012, 'A company is required for a company client.', 1;
+
+        IF @ObligationTypeId IS NULL
+            THROW 51013, 'An obligation type is required for a company client.', 1;
+
+        SET @BankId = NULL;
+    END
+    ELSE
+        THROW 51010, 'Client type has no rules defined.', 1;
+
+    IF @ObligationTypeId IS NOT NULL
+       AND NOT EXISTS (
+           SELECT 1 FROM dbo.ObligationTypes
+           WHERE ObligationTypeId = @ObligationTypeId AND IsActive = 1 AND IsDeleted = 0
+       )
+        THROW 51017, 'Obligation type not found or inactive.', 1;
+
+    INSERT dbo.Obligations
+        (ObligationDate, ClientTypeId, ObligationTypeId, BankId, CompanyId, CurrencyId, TotalAmount, DueDate, ReferenceNo, Notes, CreatedBy)
+    OUTPUT inserted.ObligationId
+    VALUES
+        (@ObligationDate, @ClientTypeId, @ObligationTypeId, @BankId, @CompanyId, @CurrencyId, @TotalAmount, @DueDate, NULLIF(LTRIM(RTRIM(@ReferenceNo)), N''), @Notes, @CreatedBy);
+END;

@@ -7,6 +7,7 @@ using RevenuUsage.Application.Features.Currencies.Commands.AddExchangeRate;
 using RevenuUsage.Application.Features.Currencies.Commands.DeleteExchangeRate;
 using RevenuUsage.Application.Features.Currencies.Queries.GetCorrespondentBalancesByCurrency;
 using RevenuUsage.Application.Features.Currencies.Queries.GetCurrencyBalances;
+using RevenuUsage.Application.Features.Currencies.Queries.GetCrossRate;
 using RevenuUsage.Application.Features.Currencies.Queries.GetDailyValuation;
 using RevenuUsage.Application.Features.Currencies.Queries.GetExchangeRate;
 using RevenuUsage.Application.Features.MasterData;
@@ -91,6 +92,22 @@ public class CurrenciesController : ControllerBase
     {
         var result = await _mediator.Send(new GetExchangeRateQuery(rateDate, fromCurrencyId, toCurrencyId), cancellationToken);
         return Ok(Paging.Create(result, page, pageSize, pageNumber));
+    }
+
+    /// <summary>
+    /// Get the rate between two currencies as of a date, derived through USD.
+    /// </summary>
+    [HttpGet("cross-rate")]
+    [ProducesResponseType(typeof(CrossRateDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CrossRateDto>> GetCrossRate(
+        [FromQuery] Guid fromCurrencyId,
+        [FromQuery] Guid toCurrencyId,
+        [FromQuery] DateTime? asOfDate,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetCrossRateQuery(fromCurrencyId, toCurrencyId, asOfDate), cancellationToken);
+        return result is null ? NotFound() : Ok(result);
     }
 
     /// <summary>

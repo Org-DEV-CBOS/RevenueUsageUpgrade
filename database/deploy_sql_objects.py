@@ -4,10 +4,10 @@ Deploy stored procedure and view definitions (previously exported by
 export_sql_objects.py) into a SQL Server database.
 
 Reads files named:  ObjectType--Schema.ObjectName.txt
-from a folder, and for SQL_STORED_PROCEDURE and VIEW files only,
+from a folder, and for stored procedure, view and function files only,
 drops the existing object then CREATE's it (two batches). This works on
 SQL Server versions that do not support CREATE OR ALTER, and keeps
-CREATE PROCEDURE/VIEW as the first statement in its batch.
+CREATE PROCEDURE/VIEW/FUNCTION as the first statement in its batch.
 
 Requires: pyodbc  (pip install pyodbc)
 Also requires an installed ODBC driver for SQL Server.
@@ -27,9 +27,23 @@ except ImportError:
 
 
 # Only these object types are deployed. Everything else found in the folder is ignored.
+# Maps the exported type_desc to the T-SQL keyword used in CREATE/DROP.
 ALLOWED_TYPES = {
     "SQL_STORED_PROCEDURE": "PROCEDURE",
     "VIEW": "VIEW",
+    "SQL_INLINE_TABLE_VALUED_FUNCTION": "FUNCTION",
+    "SQL_TABLE_VALUED_FUNCTION": "FUNCTION",
+    "SQL_SCALAR_FUNCTION": "FUNCTION",
+}
+
+# OBJECT_ID type codes, used to check existence before dropping. Functions need the
+# specific flavour ('IF'/'TF'/'FN') because OBJECT_ID won't accept a generic code.
+OBJECT_ID_TYPES = {
+    "SQL_STORED_PROCEDURE": "P",
+    "VIEW": "V",
+    "SQL_INLINE_TABLE_VALUED_FUNCTION": "IF",
+    "SQL_TABLE_VALUED_FUNCTION": "TF",
+    "SQL_SCALAR_FUNCTION": "FN",
 }
 
 # Matches: <ObjectType>--<Schema>.<ObjectName>.txt
@@ -61,12 +75,14 @@ def bracket(ident: str) -> str:
 
 def to_create_statement(definition: str, keyword: str) -> str:
     """
-    Return a CREATE PROCEDURE/VIEW batch: strip BOM and any leading text so
+    Return a CREATE PROCEDURE/VIEW/FUNCTION batch: strip BOM and any leading text so
     CREATE is the first statement, and rewrite CREATE OR ALTER / ALTER to CREATE.
     """
     definition = definition.lstrip("\ufeff")
     if keyword == "PROCEDURE":
         obj_kw = r"PROC(?:EDURE)?"
+    elif keyword == "FUNCTION":
+        obj_kw = r"FUNCTION"
     else:
         obj_kw = r"VIEW"
 
@@ -82,8 +98,9 @@ def to_create_statement(definition: str, keyword: str) -> str:
     return "CREATE" + match.group(2) + definition[match.end():]
 
 
-def drop_object_sql(keyword: str, schema: str, name: str) -> str:
-    type_code = "P" if keyword == "PROCEDURE" else "V"
+def drop_object_sql(obj_type: str, schema: str, name: str) -> str:
+    keyword = ALLOWED_TYPES[obj_type]
+    type_code = OBJECT_ID_TYPES[obj_type]
     return (
         f"IF OBJECT_ID(N'{schema}.{name}', N'{type_code}') IS NOT NULL "
         f"DROP {keyword} {bracket(schema)}.{bracket(name)};"
@@ -274,7 +291,7 @@ def main():
         except ValueError as e:
             return False, str(e)
         try:
-            cursor.execute(drop_object_sql(keyword, schema, name))
+            cursor.execute(drop_object_sql(obj_type, schema, name))
             cursor.execute(sql)
             return True, None
         except pyodbc.Error as e:

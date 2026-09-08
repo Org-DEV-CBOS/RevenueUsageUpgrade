@@ -4,6 +4,15 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Every monetary total here is reported in USD. Accounts, resources, transfers
+    -- and obligations are all held in their own currency, so each amount is converted
+    -- with the latest rate published on or before @AsOfDate before being summed.
+    -- Amounts in a currency with no rate contribute NULL and drop out of the SUM;
+    -- UnconvertedCurrencyCount tells the caller how many were left out.
+    DECLARE @rates TABLE (CurrencyId uniqueidentifier PRIMARY KEY, RateToUsd decimal(19, 8) NULL);
+    INSERT @rates (CurrencyId, RateToUsd)
+    SELECT CurrencyId, RateToUsd FROM dbo.ufnUsdRates(@AsOfDate);
+
     DECLARE @reserve decimal(19, 4) = COALESCE((
         SELECT TOP (1) GoldValue + CashInHand + Deposits
         FROM dbo.ReserveSnapshots
@@ -12,33 +21,49 @@ BEGIN
     ), 0);
 
     DECLARE @accountBalance decimal(19, 4) = COALESCE((
-        SELECT SUM(CurrentBalance)
-        FROM dbo.CorrespondentAccounts
-        WHERE IsDeleted = 0
+        SELECT SUM(CAST(a.CurrentBalance * r.RateToUsd AS decimal(19, 4)))
+        FROM dbo.CorrespondentAccounts a
+        JOIN @rates r ON r.CurrencyId = a.CurrencyId
+        WHERE a.IsDeleted = 0
     ), 0);
+
+    DECLARE @unconverted int = (
+        SELECT COUNT(DISTINCT a.CurrencyId)
+        FROM dbo.CorrespondentAccounts a
+        JOIN @rates r ON r.CurrencyId = a.CurrencyId
+        WHERE a.IsDeleted = 0
+          AND r.RateToUsd IS NULL
+          AND a.CurrentBalance <> 0
+    );
 
     SELECT
         @AsOfDate AS AsOfDate,
         COALESCE((
-            SELECT SUM(Amount)
-            FROM dbo.Resources
-            WHERE ResourceDate <= @AsOfDate AND DeletedTime IS NULL
+            SELECT SUM(CAST(res.Amount * r.RateToUsd AS decimal(19, 4)))
+            FROM dbo.Resources res
+            JOIN dbo.CorrespondentAccounts a ON a.CorrespondentAccountId = res.CorrespondentAccountId
+            JOIN @rates r ON r.CurrencyId = a.CurrencyId
+            WHERE res.ResourceDate <= @AsOfDate AND res.DeletedTime IS NULL
         ), 0) AS TotalResourcesUsd,
         COALESCE((
-            SELECT SUM(Amount)
-            FROM dbo.Transfers
-            WHERE TransferDate < DATEADD(day, 1, @AsOfDate)
-              AND TransferStatus = 'Confirmed'
-              AND DeletedTime IS NULL
+            SELECT SUM(CAST(t.Amount * r.RateToUsd AS decimal(19, 4)))
+            FROM dbo.Transfers t
+            JOIN dbo.CorrespondentAccounts a ON a.CorrespondentAccountId = t.CorrespondentAccountId
+            JOIN @rates r ON r.CurrencyId = a.CurrencyId
+            WHERE t.TransferDate < DATEADD(day, 1, @AsOfDate)
+              AND t.TransferStatus = 'Confirmed'
+              AND t.DeletedTime IS NULL
         ), 0) AS ConfirmedTransfersUsd,
         @accountBalance AS TotalAccountBalance,
         @accountBalance + @reserve AS NetPositionUsd,
         COALESCE((
-            SELECT SUM(TotalAmount - PaidAmount)
-            FROM dbo.Obligations
-            WHERE DeletedTime IS NULL
+            SELECT SUM(CAST((o.TotalAmount - o.PaidAmount) * r.RateToUsd AS decimal(19, 4)))
+            FROM dbo.Obligations o
+            JOIN @rates r ON r.CurrencyId = o.CurrencyId
+            WHERE o.DeletedTime IS NULL
         ), 0) AS OutstandingObligationsUsd,
         @reserve AS ReserveTotalUsd,
+        @unconverted AS UnconvertedCurrencyCount,
         (SELECT COUNT(*) FROM dbo.Correspondents WHERE IsDeleted = 0 AND IsActive = 1) AS CorrespondentCount,
         (SELECT COUNT(*) FROM dbo.CorrespondentAccounts WHERE IsDeleted = 0) AS AccountCount,
         (SELECT COUNT(*) FROM dbo.Transfers WHERE TransferStatus = 'Pending' AND DeletedTime IS NULL) AS PendingTransferCount,

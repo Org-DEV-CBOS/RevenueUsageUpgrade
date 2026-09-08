@@ -15,6 +15,9 @@ public interface IResourceRepository
         decimal amount,
         Guid resourceTypeId,
         string? notes,
+        Guid? remittingBankId,
+        string? referenceNo,
+        DateTime? statementDate,
         string createdBy,
         CancellationToken cancellationToken = default);
 
@@ -25,6 +28,13 @@ public interface IResourceRepository
 
     Task<IEnumerable<ResourceStatement>> GetResourceStatementAsync(
         Guid correspondentAccountId,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<ResourceListItem>> GetResourcesAsync(
+        Guid? correspondentAccountId,
+        Guid? resourceTypeId,
         DateTime? startDate,
         DateTime? endDate,
         CancellationToken cancellationToken = default);

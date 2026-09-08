@@ -3,12 +3,13 @@ import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Va
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/auth/auth.service';
-import { SYSTEM_USER } from '../../core/constants/system-user';
 import {
   Beneficiary,
+  ClientType,
   Correspondent,
   CorrespondentAccount,
   Currency,
+  ObligationType,
   ResourceType,
 } from '../../core/models/common.model';
 import {
@@ -16,6 +17,7 @@ import {
   CorrespondentAccountsApiService,
   CorrespondentsApiService,
   CurrenciesApiService,
+  ObligationsApiService,
   ResourcesApiService,
 } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -294,7 +296,7 @@ export class AccountFormComponent implements OnInit {
 
     this.saving.set(true);
     const value = this.form.getRawValue();
-    const payload = { ...value, correspondentAccountId: this.id, createdBy: SYSTEM_USER, modifiedBy: SYSTEM_USER };
+    const payload = { ...value, correspondentAccountId: this.id };
     const request$ = this.isEdit ? this.api.update(this.id, payload) : this.api.create(payload);
     request$.subscribe({
       next: () => this.router.navigateByUrl('/admin/accounts'),
@@ -506,7 +508,6 @@ export class BeneficiaryFormComponent implements OnInit {
     const payload = {
       ...value,
       beneficiaryCode: this.isEdit ? value.beneficiaryCode : generateEntityCode('BNF'),
-      actor: SYSTEM_USER,
       beneficiaryId: this.isEdit ? this.id : null,
     };
     const request$ = this.isEdit ? this.api.update(this.id, payload) : this.api.create(payload);
@@ -521,7 +522,7 @@ export class BeneficiaryFormComponent implements OnInit {
 @Component({
   selector: 'app-currency-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, PaginationComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -653,7 +654,7 @@ export class CurrencyFormComponent implements OnInit {
   }
   save(): void {
     if (this.form.invalid) return;
-    const payload = { ...this.form.getRawValue(), actor: SYSTEM_USER, currencyId: this.isEdit ? this.id : null };
+    const payload = { ...this.form.getRawValue(), currencyId: this.isEdit ? this.id : null };
     const request$ = this.isEdit ? this.api.update(this.id, payload) : this.api.create(payload);
     request$.subscribe({
       next: () => this.router.navigateByUrl('/admin/currencies'),
@@ -816,6 +817,279 @@ export class ResourceFormComponent implements OnInit {
     const request$ = this.isEdit ? this.api.updateType(this.id, payload) : this.api.createType(payload);
     request$.subscribe({
       next: () => this.router.navigateByUrl('/admin/resources'),
+      error: (err) => { this.error.set(extractHttpError(err)); this.toast.error(extractHttpError(err)); },
+    });
+  }
+}
+
+// --- Obligation Types ---
+@Component({
+  selector: 'app-obligation-type-list',
+  standalone: true,
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
+  template: `
+    <div class="page">
+      <div class="page-toolbar">
+        <h1>{{ 'NAV.OBLIGATION_TYPES' | translate }}</h1>
+        <a routerLink="/admin/obligation-types/create" class="btn-primary">{{ 'OBLIGATION_TYPES.ADD' | translate }}</a>
+      </div>
+      @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <div class="panel">
+        @if (loading()) { <p>{{ 'COMMON.LOADING' | translate }}</p> }
+        @else if (!items().length) { <p>{{ 'COMMON.NO_DATA' | translate }}</p> }
+        @else {
+          <table class="data-table">
+            <thead><tr>
+              <th>{{ 'OBLIGATION_TYPES.NAME' | translate }}</th>
+              <th>{{ 'COMMON.ACTIVE' | translate }}</th>
+              <th>{{ 'COMMON.ACTIONS' | translate }}</th>
+            </tr></thead>
+            <tbody>
+              @for (item of items(); track item.obligationTypeId) {
+                <tr>
+                  <td>{{ item | localizedField:'obligationTypeNameEn':'obligationTypeNameAr' }}</td>
+                  <td>{{ (item.isActive ? 'COMMON.YES' : 'COMMON.NO') | translate }}</td>
+                  <td>
+                    <a [routerLink]="['/admin/obligation-types/edit', item.obligationTypeId]" class="btn-icon">✎</a>
+                    <button
+                      type="button"
+                      class="btn-icon danger"
+                      [disabled]="item.hasMovements"
+                      [title]="(item.hasMovements ? 'OBLIGATION_TYPES.IN_USE' : 'COMMON.DELETE') | translate"
+                      (click)="confirmDelete(item)"
+                    >🗑</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+      <app-pagination
+        [page]="currentPage()"
+        [pageSize]="pageSize()"
+        [totalCount]="totalCount()"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="changePageSize($event)"
+      />
+    </div>
+  `,
+})
+export class ObligationTypeListComponent implements OnInit {
+  private readonly api = inject(ObligationsApiService);
+  private readonly toast = inject(ToastService);
+  private readonly translate = inject(TranslateService);
+  private readonly confirm = inject(ConfirmService);
+  readonly loading = signal(false);
+  readonly error = signal('');
+  readonly items = signal<ObligationType[]>([]);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+  readonly totalCount = signal(0);
+  ngOnInit(): void { this.load(); }
+  goToPage(page: number): void { this.currentPage.set(page); this.load(); }
+  changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
+  async confirmDelete(item: ObligationType): Promise<void> {
+    if (!(await this.confirm.confirmDelete())) return;
+    this.api.deleteType(item.obligationTypeId).subscribe({
+      next: () => { this.toast.success(this.translate.instant('COMMON.DELETED')); this.load(); },
+      error: (err) => this.toast.error(extractHttpError(err)),
+    });
+  }
+  private load(): void {
+    this.loading.set(true);
+    this.api.getTypesPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+      next: (d) => {
+        this.items.set(d.items ?? []);
+        this.totalCount.set(d.totalCount ?? 0);
+        this.loading.set(false);
+      },
+      error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
+    });
+  }
+}
+
+@Component({
+  selector: 'app-obligation-type-form',
+  standalone: true,
+  imports: [ReactiveFormsModule, TranslatePipe, RouterLink],
+  template: `
+    <div class="page">
+      <div class="page-toolbar">
+        <h1>{{ (isEdit ? 'COMMON.EDIT' : 'OBLIGATION_TYPES.ADD') | translate }}</h1>
+        <a routerLink="/admin/obligation-types" class="btn-secondary">{{ 'COMMON.BACK' | translate }}</a>
+      </div>
+      @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <form class="form-panel" [formGroup]="form" (ngSubmit)="save()">
+        <label>{{ 'OBLIGATION_TYPES.NAME_EN' | translate }} *<input formControlName="obligationTypeNameEn" maxlength="100" /></label>
+        <label>{{ 'OBLIGATION_TYPES.NAME_AR' | translate }}<input formControlName="obligationTypeNameAr" maxlength="100" /></label>
+        @if (isEdit) { <label class="checkbox"><input type="checkbox" formControlName="isActive" /> {{ 'COMMON.ACTIVE' | translate }}</label> }
+        <div class="form-actions"><button type="submit" class="btn-primary" [disabled]="form.invalid">{{ 'COMMON.SAVE' | translate }}</button></div>
+      </form>
+    </div>
+  `,
+})
+export class ObligationTypeFormComponent implements OnInit {
+  private readonly api = inject(ObligationsApiService);
+  private readonly toast = inject(ToastService);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  isEdit = false; id = '';
+  readonly error = signal('');
+  readonly form = this.fb.nonNullable.group({
+    obligationTypeNameEn: ['', Validators.required],
+    obligationTypeNameAr: [''],
+    isActive: [true],
+  });
+  ngOnInit(): void {
+    const segments = this.router.url.split('/');
+    if (!segments.includes('edit')) return;
+    this.isEdit = true;
+    this.id = segments[segments.indexOf('edit') + 1];
+    this.api.getTypes({ activeOnly: false }).subscribe({
+      next: (items) => {
+        const item = items.find((t) => t.obligationTypeId === this.id);
+        if (item) {
+          this.form.patchValue({
+            obligationTypeNameEn: item.obligationTypeNameEn,
+            obligationTypeNameAr: item.obligationTypeNameAr ?? '',
+            isActive: item.isActive,
+          });
+        }
+      },
+      error: (err) => this.error.set(extractHttpError(err)),
+    });
+  }
+  save(): void {
+    if (this.form.invalid) return;
+    const payload = { ...this.form.getRawValue(), obligationTypeId: this.isEdit ? this.id : null };
+    const request$ = this.isEdit ? this.api.updateType(this.id, payload) : this.api.createType(payload);
+    request$.subscribe({
+      next: () => this.router.navigateByUrl('/admin/obligation-types'),
+      error: (err) => { this.error.set(extractHttpError(err)); this.toast.error(extractHttpError(err)); },
+    });
+  }
+}
+
+// --- Client Types ---
+/**
+ * Bank and Company are the only two, because dbo.uspCreateObligation only has rules for
+ * those, so these screens rename and enable or disable rather than add and remove.
+ */
+@Component({
+  selector: 'app-client-type-list',
+  standalone: true,
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe],
+  template: `
+    <div class="page">
+      <div class="page-toolbar">
+        <h1>{{ 'NAV.CLIENT_TYPES' | translate }}</h1>
+      </div>
+      @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <div class="panel">
+        <p class="hint">{{ 'CLIENT_TYPES.FIXED_SET_HINT' | translate }}</p>
+        @if (loading()) { <p>{{ 'COMMON.LOADING' | translate }}</p> }
+        @else if (!items().length) { <p>{{ 'COMMON.NO_DATA' | translate }}</p> }
+        @else {
+          <table class="data-table">
+            <thead><tr>
+              <th>{{ 'COMMON.CODE' | translate }}</th>
+              <th>{{ 'CLIENT_TYPES.NAME' | translate }}</th>
+              <th>{{ 'COMMON.ACTIVE' | translate }}</th>
+              <th>{{ 'COMMON.ACTIONS' | translate }}</th>
+            </tr></thead>
+            <tbody>
+              @for (item of items(); track item.clientTypeId) {
+                <tr>
+                  <td>{{ item.clientTypeCode }}</td>
+                  <td>{{ item | localizedField:'clientTypeNameEn':'clientTypeNameAr' }}</td>
+                  <td>{{ (item.isActive ? 'COMMON.YES' : 'COMMON.NO') | translate }}</td>
+                  <td>
+                    <a [routerLink]="['/admin/client-types/edit', item.clientTypeId]" class="btn-icon">✎</a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </div>
+  `,
+})
+export class ClientTypeListComponent implements OnInit {
+  private readonly api = inject(ObligationsApiService);
+  readonly loading = signal(false);
+  readonly error = signal('');
+  readonly items = signal<ClientType[]>([]);
+  ngOnInit(): void {
+    this.loading.set(true);
+    this.api.getClientTypes({ activeOnly: false }).subscribe({
+      next: (items) => { this.items.set(items); this.loading.set(false); },
+      error: (err) => { this.loading.set(false); this.error.set(extractHttpError(err)); },
+    });
+  }
+}
+
+@Component({
+  selector: 'app-client-type-form',
+  standalone: true,
+  imports: [ReactiveFormsModule, TranslatePipe, RouterLink],
+  template: `
+    <div class="page">
+      <div class="page-toolbar">
+        <h1>{{ 'COMMON.EDIT' | translate }}</h1>
+        <a routerLink="/admin/client-types" class="btn-secondary">{{ 'COMMON.BACK' | translate }}</a>
+      </div>
+      @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <form class="form-panel" [formGroup]="form" (ngSubmit)="save()">
+        <label>{{ 'COMMON.CODE' | translate }}<input [value]="code()" readonly /></label>
+        <label>{{ 'CLIENT_TYPES.NAME_EN' | translate }} *<input formControlName="clientTypeNameEn" maxlength="100" /></label>
+        <label>{{ 'CLIENT_TYPES.NAME_AR' | translate }}<input formControlName="clientTypeNameAr" maxlength="100" /></label>
+        <label class="checkbox"><input type="checkbox" formControlName="isActive" /> {{ 'COMMON.ACTIVE' | translate }}</label>
+        @if (hasMovements() && !form.controls.isActive.value) {
+          <span class="hint warning full-width">{{ 'CLIENT_TYPES.DEACTIVATE_HINT' | translate }}</span>
+        }
+        <div class="form-actions"><button type="submit" class="btn-primary" [disabled]="form.invalid">{{ 'COMMON.SAVE' | translate }}</button></div>
+      </form>
+    </div>
+  `,
+})
+export class ClientTypeFormComponent implements OnInit {
+  private readonly api = inject(ObligationsApiService);
+  private readonly toast = inject(ToastService);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  id = '';
+  readonly error = signal('');
+  readonly code = signal('');
+  readonly hasMovements = signal(false);
+  readonly form = this.fb.nonNullable.group({
+    clientTypeNameEn: ['', Validators.required],
+    clientTypeNameAr: [''],
+    isActive: [true],
+  });
+  ngOnInit(): void {
+    const segments = this.router.url.split('/');
+    this.id = segments[segments.indexOf('edit') + 1];
+    this.api.getClientTypes({ activeOnly: false }).subscribe({
+      next: (items) => {
+        const item = items.find((t) => t.clientTypeId === this.id);
+        if (!item) return;
+        this.code.set(item.clientTypeCode);
+        this.hasMovements.set(item.hasMovements);
+        this.form.patchValue({
+          clientTypeNameEn: item.clientTypeNameEn,
+          clientTypeNameAr: item.clientTypeNameAr ?? '',
+          isActive: item.isActive,
+        });
+      },
+      error: (err) => this.error.set(extractHttpError(err)),
+    });
+  }
+  save(): void {
+    if (this.form.invalid) return;
+    this.api.updateClientType(this.id, this.form.getRawValue()).subscribe({
+      next: () => this.router.navigateByUrl('/admin/client-types'),
       error: (err) => { this.error.set(extractHttpError(err)); this.toast.error(extractHttpError(err)); },
     });
   }

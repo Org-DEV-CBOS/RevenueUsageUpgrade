@@ -43,13 +43,24 @@ export class UserLayoutComponent {
   readonly userNavItems: NavItem[] = [
     { labelKey: 'NAV.DASHBOARD', icon: '🏠', route: '/app/dashboard' },
     { labelKey: 'NAV.ACCOUNTS', icon: '💼', route: '/app/accounts' },
+    { labelKey: 'NAV.RESOURCES', icon: '💰', route: '/app/resources' },
     { labelKey: 'NAV.TRANSACTIONS', icon: '💸', route: '/app/transfers' },
+    { labelKey: 'NAV.REPLENISHMENTS', icon: '🔄', route: '/app/coverages' },
+    { labelKey: 'NAV.DEALING', icon: '📈', route: '/app/deals' },
     { labelKey: 'NAV.OBLIGATIONS', icon: '📋', route: '/app/obligations' },
+    { labelKey: 'NAV.GOLD_AND_CASH', icon: '🥇', route: '/app/reserves' },
     { labelKey: 'NAV.CURRENCIES', icon: '💱', route: '/app/currencies' },
     { labelKey: 'NAV.EXCHANGE_RATES', icon: '💹', route: '/app/exchange-rates' },
-    { labelKey: 'NAV.DEALING', icon: '📈', route: '/app/deals' },
-    { labelKey: 'NAV.REPLENISHMENTS', icon: '🔄', route: '/app/coverages' },
-    { labelKey: 'NAV.GOLD_AND_CASH', icon: '🥇', route: '/app/reserves' },
+    {
+      labelKey: 'NAV.STATEMENTS',
+      icon: '📄',
+      route: 'statements',
+      children: [
+        { labelKey: 'STATEMENTS.ACCOUNT', icon: '', route: '/app/statements/account' },
+        { labelKey: 'STATEMENTS.CURRENCY', icon: '', route: '/app/statements/currency' },
+        { labelKey: 'STATEMENTS.BANK_POSITION', icon: '', route: '/app/statements/bank-position' },
+      ],
+    },
     {
       labelKey: 'NAV.REPORTS',
       icon: '📊',
@@ -58,6 +69,9 @@ export class UserLayoutComponent {
         { labelKey: 'NAV.BALANCES', icon: '', route: '/app/reports/balances' },
         { labelKey: 'NAV.OBLIGATIONS', icon: '', route: '/app/reports/obligations' },
         { labelKey: 'NAV.FOREIGN_RESERVE', icon: '', route: '/app/reports/foreign-reserve' },
+        { labelKey: 'REPORTS.CREDIT_MOVEMENTS', icon: '', route: '/app/reports/credit-movements' },
+        { labelKey: 'REPORTS.DEBIT_MOVEMENTS', icon: '', route: '/app/reports/debit-movements' },
+        { labelKey: 'REPORTS.RESOURCES_SUMMARY', icon: '', route: '/app/reports/resources' },
       ],
     },
   ];

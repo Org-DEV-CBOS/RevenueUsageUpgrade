@@ -23,4 +23,4 @@ WHERE r.DeletedTime IS NULL
   AND (@RateDate IS NULL OR r.RateDate = @RateDate)
   AND (@FromCurrencyId IS NULL OR r.FromCurrencyId = @FromCurrencyId)
   AND (@ToCurrencyId IS NULL OR r.ToCurrencyId = @ToCurrencyId)
-ORDER BY r.RateDate DESC;
+ORDER BY r.RateDate DESC, f.CurrencyNameEn;

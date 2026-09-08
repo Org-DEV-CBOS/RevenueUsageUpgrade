@@ -8,6 +8,7 @@ import {
   inject,
   input,
   signal,
+  viewChild,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -31,6 +32,7 @@ export interface SearchSelectOption {
   template: `
     <div class="search-select" [class.open]="open()">
       <input
+        #search
         type="text"
         [value]="query()"
         [placeholder]="placeholder() || ('COMMON.SEARCH' | translate)"
@@ -39,6 +41,18 @@ export interface SearchSelectOption {
         (focus)="openPanel()"
         (input)="onQuery($event)"
       />
+      @if (selected() && !disabled()) {
+        <button
+          type="button"
+          class="search-select-clear"
+          [attr.aria-label]="'COMMON.CLEAR' | translate"
+          [title]="'COMMON.CLEAR' | translate"
+          (mousedown)="$event.preventDefault()"
+          (click)="clear()"
+        >
+          &times;
+        </button>
+      }
       @if (open()) {
         <ul class="search-select-menu">
           @for (option of filtered(); track option.value) {
@@ -65,6 +79,7 @@ export class SearchSelectComponent implements ControlValueAccessor {
   readonly disabled = signal(false);
   readonly selected = signal('');
 
+  private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
   private readonly host = inject(ElementRef<HTMLElement>);
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
@@ -122,6 +137,16 @@ export class SearchSelectComponent implements ControlValueAccessor {
       this.selected.set('');
       this.onChange('');
     }
+  }
+
+  /** Drops the current selection and reopens the full list so another option is one click away. */
+  clear(): void {
+    this.selected.set('');
+    this.query.set('');
+    this.onChange('');
+    this.onTouched();
+    this.open.set(true);
+    this.search()?.nativeElement.focus();
   }
 
   select(option: SearchSelectOption, event: MouseEvent): void {

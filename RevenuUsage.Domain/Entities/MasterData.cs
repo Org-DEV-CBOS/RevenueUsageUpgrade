@@ -51,3 +51,26 @@ public sealed class UsageType
     public bool IsActive { get; set; }
     public bool HasMovements { get; set; }
 }
+
+/// <summary>
+/// Bank or company, per <see cref="ObligationClientTypeCodes"/>. Renameable and
+/// deactivatable, but not created or deleted: the obligation rules only cover those two.
+/// </summary>
+public sealed class ClientType
+{
+    public Guid ClientTypeId { get; set; }
+    public string ClientTypeCode { get; set; } = string.Empty;
+    public string ClientTypeNameEn { get; set; } = string.Empty;
+    public string? ClientTypeNameAr { get; set; }
+    public bool IsActive { get; set; }
+    public bool HasMovements { get; set; }
+}
+
+public sealed class ObligationType
+{
+    public Guid ObligationTypeId { get; set; }
+    public string ObligationTypeNameEn { get; set; } = string.Empty;
+    public string? ObligationTypeNameAr { get; set; }
+    public bool IsActive { get; set; }
+    public bool HasMovements { get; set; }
+}

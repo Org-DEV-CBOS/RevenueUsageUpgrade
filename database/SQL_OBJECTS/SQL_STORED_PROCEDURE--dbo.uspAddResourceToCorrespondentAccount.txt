@@ -1,1 +1,55 @@
-CREATE OR ALTER PROCEDURE dbo.uspAddResourceToCorrespondentAccount @ResourceDate date,@CorrespondentAccountId uniqueidentifier,@Amount decimal(19,4),@ResourceTypeId uniqueidentifier,@Notes nvarchar(300)=NULL,@CreatedBy nvarchar(100) AS BEGIN SET XACT_ABORT ON;BEGIN TRAN;UPDATE dbo.CorrespondentAccounts WITH(UPDLOCK) SET CurrentBalance=CurrentBalance+@Amount WHERE CorrespondentAccountId=@CorrespondentAccountId AND IsActive=1 AND IsDeleted=0;IF @@ROWCOUNT=0 THROW 52001,'Account not found or inactive.',1;INSERT dbo.Resources(ResourceDate,CorrespondentAccountId,Amount,ResourceTypeId,Notes,CreatedBy)VALUES(@ResourceDate,@CorrespondentAccountId,@Amount,@ResourceTypeId,@Notes,@CreatedBy);COMMIT;END;
+CREATE OR ALTER PROCEDURE dbo.uspAddResourceToCorrespondentAccount
+    @ResourceDate date,
+    @CorrespondentAccountId uniqueidentifier,
+    @Amount decimal(19, 4),
+    @ResourceTypeId uniqueidentifier,
+    @Notes nvarchar(300) = NULL,
+    @RemittingBankId uniqueidentifier = NULL,
+    @ReferenceNo nvarchar(100) = NULL,
+    @StatementDate date = NULL,
+    @CreatedBy nvarchar(100)
+AS
+BEGIN
+    SET XACT_ABORT ON;
+
+    IF @RemittingBankId IS NOT NULL
+       AND NOT EXISTS (
+           SELECT 1 FROM dbo.Banks
+           WHERE BankId = @RemittingBankId AND IsDeleted = 0
+       )
+        THROW 52002, 'Remitting bank not found.', 1;
+
+    BEGIN TRAN;
+
+    UPDATE dbo.CorrespondentAccounts WITH (UPDLOCK)
+    SET CurrentBalance = CurrentBalance + @Amount
+    WHERE CorrespondentAccountId = @CorrespondentAccountId
+      AND IsActive = 1
+      AND IsDeleted = 0;
+
+    IF @@ROWCOUNT = 0
+        THROW 52001, 'Account not found or inactive.', 1;
+
+    INSERT dbo.Resources (
+        ResourceDate,
+        CorrespondentAccountId,
+        Amount,
+        ResourceTypeId,
+        Notes,
+        RemittingBankId,
+        ReferenceNo,
+        StatementDate,
+        CreatedBy)
+    VALUES (
+        @ResourceDate,
+        @CorrespondentAccountId,
+        @Amount,
+        @ResourceTypeId,
+        @Notes,
+        @RemittingBankId,
+        NULLIF(LTRIM(RTRIM(@ReferenceNo)), N''),
+        @StatementDate,
+        @CreatedBy);
+
+    COMMIT;
+END;

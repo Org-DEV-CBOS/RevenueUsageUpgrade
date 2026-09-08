@@ -33,6 +33,9 @@ public class ResourceRepository : IResourceRepository
         decimal amount,
         Guid resourceTypeId,
         string? notes,
+        Guid? remittingBankId,
+        string? referenceNo,
+        DateTime? statementDate,
         string createdBy,
         CancellationToken cancellationToken = default)
     {
@@ -49,6 +52,9 @@ public class ResourceRepository : IResourceRepository
             parameters.Add("@Amount", amount, DbType.Decimal);
             parameters.Add("@ResourceTypeId", resourceTypeId, DbType.Guid);
             parameters.Add("@Notes", notes, DbType.String, size: 300);
+            parameters.Add("@RemittingBankId", remittingBankId, DbType.Guid);
+            parameters.Add("@ReferenceNo", referenceNo, DbType.String, size: 100);
+            parameters.Add("@StatementDate", statementDate, DbType.Date);
             parameters.Add("@CreatedBy", createdBy, DbType.String, size: 100);
 
             await _connection.ExecuteAsync(
@@ -120,6 +126,29 @@ public class ResourceRepository : IResourceRepository
         );
 
         return results;
+    }
+
+    public async Task<IEnumerable<ResourceListItem>> GetResourcesAsync(
+        Guid? correspondentAccountId,
+        Guid? resourceTypeId,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken cancellationToken = default)
+    {
+        if (_connection.State != ConnectionState.Open)
+            _connection.Open();
+
+        var parameters = new DynamicParameters();
+        parameters.Add("@CorrespondentAccountId", correspondentAccountId, DbType.Guid);
+        parameters.Add("@ResourceTypeId", resourceTypeId, DbType.Guid);
+        parameters.Add("@StartDate", startDate, DbType.Date);
+        parameters.Add("@EndDate", endDate, DbType.Date);
+
+        return await _connection.QueryAsync<ResourceListItem>(
+            "dbo.uspGetResources",
+            parameters,
+            commandType: CommandType.StoredProcedure
+        );
     }
 }
 

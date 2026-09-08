@@ -1,7 +1,8 @@
 {
   "APP": {
     "TITLE": "RUTS",
-    "SUBTITLE": "نظام تتبع الموارد والاستخدامات"
+    "SUBTITLE": "نظام تتبع الموارد والاستخدامات",
+    "STARTING": "جارٍ التحميل، يرجى الانتظار..."
   },
   "COMMON": {
     "SEARCH": "بحث",
@@ -15,6 +16,7 @@
     "INACTIVE": "غير نشط",
     "YES": "نعم",
     "NO": "لا",
+    "ALL": "الكل",
     "LOADING": "جاري التحميل...",
     "NO_DATA": "لا توجد سجلات",
     "CONFIRM_DELETE": "هل أنت متأكد من حذف هذا السجل؟",
@@ -27,10 +29,26 @@
     "CLOSE": "إغلاق",
     "SUCCESS": "تمت العملية بنجاح",
     "ERROR": "حدث خطأ",
-    "CODE": "الرمز"
+    "CODE": "الرمز",
+    "FROM_DATE": "من تاريخ",
+    "TO_DATE": "إلى تاريخ",
+    "APPLY": "تطبيق",
+    "CLEAR": "مسح",
+    "NARRATION": "البيان",
+    "EXPORT_EXCEL": "إكسل",
+    "EXPORT_PDF": "PDF"
+  },
+  "ERRORS": {
+    "OFFLINE": "تعذّر الاتصال بالخادم حالياً. يرجى التحقق من الاتصال والمحاولة مرة أخرى.",
+    "SESSION_EXPIRED": "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+    "FORBIDDEN": "ليست لديك صلاحية للقيام بهذا الإجراء.",
+    "NOT_FOUND": "تعذّر العثور على البيانات المطلوبة.",
+    "SERVER": "حدث خطأ في الخادم. يرجى المحاولة بعد قليل.",
+    "GENERIC": "حدث خطأ. يرجى المحاولة مرة أخرى."
   },
   "VALIDATION": {
-    "MIN_VALUE": "يجب أن تكون القيمة {{min}} على الأقل"
+    "MIN_VALUE": "يجب أن تكون القيمة {{min}} على الأقل",
+    "MAX_LENGTH": "يجب ألا يتجاوز {{max}} حرفاً"
   },
   "AUTH": {
     "LOGIN": "تسجيل الدخول",
@@ -59,11 +77,14 @@
     "RESOURCES": "الموارد",
     "TRANSACTIONS": "المعاملات",
     "OBLIGATIONS": "الالتزامات",
+    "OBLIGATION_TYPES": "أنواع الالتزامات",
+    "CLIENT_TYPES": "أنواع العملاء",
     "GOLD_AND_CASH": "الذهب والنقد",
     "CURRENCIES": "العملات",
     "REPLENISHMENTS": "التمويلات",
     "DEALING": "التداول",
     "REPORTS": "التقارير",
+    "STATEMENTS": "كشوفات الحساب",
     "BALANCES": "الأرصدة",
     "FOREIGN_RESERVE": "الاحتياطي الأجنبي",
     "COUNTRIES": "الدول",
@@ -137,10 +158,17 @@
     "DECIMALS": "الخانات العشرية"
   },
   "RESOURCES": {
-    "ADD": "+ إضافة مورد",
+    "TITLE": "الموارد",
+    "ADD": "+ إضافة نوع مورد",
     "NAME": "اسم المورد",
     "NAME_EN": "اسم المورد (إنجليزي)",
-    "NAME_AR": "اسم المورد (عربي)"
+    "NAME_AR": "اسم المورد (عربي)",
+    "ENTRIES": "الموارد",
+    "ADD_ENTRY": "+ تسجيل مورد",
+    "TYPE": "نوع المورد",
+    "NOTES": "ملاحظات",
+    "REMITTING_BANK": "البنك المحول",
+    "STATEMENT_DATE": "تاريخ الكشف"
   },
   "TRANSFERS": {
     "TITLE": "المعاملات",
@@ -150,19 +178,116 @@
     "DATE": "تاريخ التحويل",
     "PURPOSE": "الغرض",
     "STATUS": "الحالة",
+    "PENDING": "معلقة",
+    "CONFIRMED": "مؤكدة",
+    "REJECTED": "مرفوضة",
     "CONFIRM": "تأكيد",
-    "REJECT": "رفض"
+    "REJECT": "رفض",
+    "REJECT_REASON": "سبب الرفض",
+    "CONFIRMED_MESSAGE": "تم تأكيد المعاملة",
+    "REJECTED_MESSAGE": "تم رفض المعاملة",
+    "EXCEEDS_BALANCE": "المبلغ أكبر من الرصيد الحالي للحساب",
+    "CREATED_PENDING_HINT": "تُنشأ المعاملة كمعلقة ولا يُخصم من الحساب إلا بعد التأكيد.",
+    "STATEMENT_DATE": "تاريخ الكشف",
+    "REQUIRED_ON_CONFIRM_HINT": "رقم المرجع وتاريخ الكشف اختياريان الآن، لكنهما مطلوبان لتأكيد المعاملة.",
+    "CONFIRM_DETAILS_PROMPT": "أدخل رقم المرجع وتاريخ الكشف لتأكيد هذه المعاملة."
+  },
+  "COVERAGES": {
+    "ADD": "+ تمويل جديد",
+    "FROM_ACCOUNT": "من حساب",
+    "TO_ACCOUNT": "إلى حساب",
+    "PICK_SOURCE_FIRST": "اختر الحساب المصدر أولاً؛ الحسابات بنفس العملة فقط يمكنها الاستلام."
+  },
+  "DEALS": {
+    "ADD": "+ صفقة جديدة",
+    "FROM_ACCOUNT": "من حساب",
+    "TO_ACCOUNT": "إلى حساب",
+    "FROM_AMOUNT": "المبلغ المباع",
+    "TO_AMOUNT": "المبلغ المشترى",
+    "TO_AMOUNT_HINT": "يُحتسب كالمبلغ المباع × السعر.",
+    "SUGGESTED_RATE": "السعر في التاريخ المحدد",
+    "DATE_DRIVES_RATE": "يتم جلب سعر الصرف حسب هذا التاريخ.",
+    "VIA_USD": "عبر الدولار",
+    "NO_RATE_FOR_DATE": "لا يوجد سعر منشور لهذا الزوج في التاريخ المحدد أو قبله. أدخل السعر يدوياً."
+  },
+  "OBLIGATIONS": {
+    "ADD": "+ التزام جديد",
+    "CLIENT": "العميل",
+    "CLIENT_TYPE": "نوع العميل",
+    "OBLIGATION_TYPE": "نوع الالتزام",
+    "PICK_CLIENT_TYPE": "اختر نوع العميل للمتابعة.",
+    "TOTAL": "إجمالي المبلغ",
+    "PAID": "المسدد",
+    "REMAINING": "المتبقي",
+    "DUE_DATE": "تاريخ الاستحقاق",
+    "OPEN_ONLY": "القائمة فقط",
+    "STATEMENT": "كشف الالتزام",
+    "PAYMENTS": "الدفعات",
+    "ADD_PAYMENT": "تسجيل دفعة",
+    "PAY": "سداد",
+    "SAME_CURRENCY_HINT": "يمكن استخدام الحسابات بعملة الالتزام فقط.",
+    "STATUS_OPEN": "قائم",
+    "STATUS_PAID": "مسدد",
+    "STATUS_OVERDUE": "متأخر"
+  },
+  "OBLIGATION_TYPES": {
+    "ADD": "+ إضافة نوع التزام",
+    "NAME": "نوع الالتزام",
+    "NAME_EN": "نوع الالتزام (إنجليزي)",
+    "NAME_AR": "نوع الالتزام (عربي)",
+    "IN_USE": "مستخدم في التزام ولا يمكن حذفه"
+  },
+  "CLIENT_TYPES": {
+    "NAME": "نوع العميل",
+    "NAME_EN": "نوع العميل (إنجليزي)",
+    "NAME_AR": "نوع العميل (عربي)",
+    "FIXED_SET_HINT": "تُسجَّل الالتزامات على بنك أو شركة، لذلك لا يمكن إضافة أنواع عملاء أو حذفها. يمكنك تعديل الأسماء أو تعطيل أحدها.",
+    "DEACTIVATE_HINT": "هناك التزامات قائمة تستخدم هذا النوع. التعطيل يمنع تسجيل التزامات جديدة عليه فقط."
+  },
+  "RESERVES": {
+    "ADD": "+ رصيد جديد",
+    "GOLD": "قيمة الذهب",
+    "CASH": "النقد بالخزينة",
+    "DEPOSITS": "الودائع",
+    "TOTAL": "الإجمالي",
+    "AT_LEAST_ONE": "أدخل قيمة واحدة على الأقل أكبر من صفر"
+  },
+  "STATEMENTS": {
+    "ACCOUNT": "كشف حساب",
+    "CURRENCY": "كشف عملة",
+    "BANK_POSITION": "مركز البنك",
+    "EVENT": "الحركة",
+    "IN": "وارد",
+    "OUT": "صادر",
+    "RUNNING_BALANCE": "الرصيد الجاري",
+    "OPENING_BALANCE": "الرصيد الافتتاحي",
+    "CLOSING_BALANCE": "الرصيد الختامي",
+    "AS_OF": "حتى تاريخ",
+    "PICK_ACCOUNT": "اختر حساباً لعرض كشفه.",
+    "PICK_CURRENCY": "اختر عملة لعرض كشفها.",
+    "COVERAGE_IN": "تمويلات واردة",
+    "COVERAGE_OUT": "تمويلات صادرة",
+    "CONFIRMED_TRANSFERS": "المعاملات المؤكدة",
+    "CORRESPONDENT_BALANCES": "أرصدة المراسلين",
+    "NET_POSITION": "صافي المركز"
+  },
+  "REPORTS": {
+    "CREDIT_MOVEMENTS": "الحركات الدائنة",
+    "DEBIT_MOVEMENTS": "الحركات المدينة",
+    "RESOURCES_SUMMARY": "ملخص الموارد",
+    "USAGES": "الاستخدامات"
   },
   "DASHBOARD": {
     "TITLE": "لوحة التحكم",
     "WELCOME": "مرحباً بعودتك، {{name}}",
-    "TOTAL_BALANCE": "إجمالي الرصيد",
-    "NET_POSITION": "صافي المركز",
-    "TOTAL_RESOURCES": "إجمالي الموارد",
-    "CONFIRMED_TRANSFERS": "التحويلات المؤكدة",
+    "TOTAL_BALANCE": "إجمالي الرصيد (دولار)",
+    "NET_POSITION": "صافي المركز (دولار)",
+    "TOTAL_RESOURCES": "إجمالي الموارد (دولار)",
+    "UNCONVERTED_WARNING": "يوجد {{count}} عملة لها أرصدة بدون سعر صرف منشور مقابل الدولار، وقد استُبعدت من هذه الإجماليات.",
+    "CONFIRMED_TRANSFERS": "التحويلات المؤكدة (دولار)",
     "CONFIRMED_TRANSFER_COUNT": "عدد التحويلات المؤكدة",
     "ACTIVE_OBLIGATIONS": "الالتزامات النشطة",
-    "OUTSTANDING_OBLIGATIONS": "الالتزامات القائمة",
+    "OUTSTANDING_OBLIGATIONS": "الالتزامات القائمة (دولار)",
     "PENDING_TRANSFERS": "التحويلات المعلقة",
     "RESERVES": "الاحتياطيات",
     "ACCOUNTS": "الحسابات",

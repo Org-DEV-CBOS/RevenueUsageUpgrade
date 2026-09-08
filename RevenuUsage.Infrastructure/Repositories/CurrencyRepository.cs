@@ -76,6 +76,23 @@ public class CurrencyRepository : ICurrencyRepository
         return result;
     }
 
+    public async Task<CrossRate?> GetCrossRateAsync(Guid fromCurrencyId, Guid toCurrencyId, DateTime? asOfDate, CancellationToken cancellationToken = default)
+    {
+        if (_connection.State != ConnectionState.Open)
+            _connection.Open();
+
+        var parameters = new DynamicParameters();
+        parameters.Add("@FromCurrencyId", fromCurrencyId, DbType.Guid);
+        parameters.Add("@ToCurrencyId", toCurrencyId, DbType.Guid);
+        parameters.Add("@AsOfDate", asOfDate, DbType.Date);
+
+        return await _connection.QuerySingleOrDefaultAsync<CrossRate>(
+            "dbo.uspGetCrossRate",
+            parameters,
+            commandType: CommandType.StoredProcedure
+        );
+    }
+
     public async Task AddExchangeRateAsync(DateTime rateDate, Guid fromCurrencyId, Guid toCurrencyId, decimal rateValue, string createdBy, CancellationToken cancellationToken = default)
     {
         if (_connection.State != ConnectionState.Open)

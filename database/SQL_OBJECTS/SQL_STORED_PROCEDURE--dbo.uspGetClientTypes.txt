@@ -1,0 +1,20 @@
+CREATE OR ALTER PROCEDURE dbo.uspGetClientTypes
+    @ActiveOnly bit = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ct.ClientTypeId,
+        ct.ClientTypeCode,
+        ct.ClientTypeNameEn,
+        ct.ClientTypeNameAr,
+        ct.IsActive,
+        CAST(CASE WHEN EXISTS (
+            SELECT 1 FROM dbo.Obligations o
+            WHERE o.ClientTypeId = ct.ClientTypeId AND o.DeletedTime IS NULL
+        ) THEN 1 ELSE 0 END AS bit) AS HasMovements
+    FROM dbo.ClientTypes ct
+    WHERE (@ActiveOnly = 0 OR ct.IsActive = 1)
+    ORDER BY ct.ClientTypeNameEn;
+END;

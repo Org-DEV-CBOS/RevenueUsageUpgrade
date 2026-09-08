@@ -18,6 +18,8 @@ public sealed class ConfirmTransferCommandHandler : ICommandHandler<ConfirmTrans
     {
         var entity = new Transfer();
         entity.TransferId = request.TransferId;
+        entity.ReferenceNo = request.ReferenceNo;
+        entity.StatementDate = request.StatementDate;
         entity.ConfirmedBy = request.ConfimredBy;
 
         await _repository.ConfirmTransfer(entity, cancellationToken);

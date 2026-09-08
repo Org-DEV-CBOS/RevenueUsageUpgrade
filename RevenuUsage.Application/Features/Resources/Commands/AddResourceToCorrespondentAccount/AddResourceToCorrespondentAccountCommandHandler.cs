@@ -21,6 +21,9 @@ public sealed class AddResourceToCorrespondentAccountCommandHandler
             request.Amount,
             request.ResourceTypeId,
             request.Notes,
+            request.RemittingBankId,
+            request.ReferenceNo,
+            request.StatementDate,
             request.CreatedBy,
             cancellationToken);
     }

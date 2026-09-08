@@ -19,6 +19,11 @@ import { MoneyPipe } from '../../shared/pipes/money.pipe';
       <div class="error-banner">{{ error() }}</div>
     } @else if (summary(); as stats) {
       <h3 class="dashboard-section">{{ 'DASHBOARD.FINANCIAL' | translate }}</h3>
+      @if (stats.unconvertedCurrencyCount > 0) {
+        <div class="warning-banner">
+          {{ 'DASHBOARD.UNCONVERTED_WARNING' | translate: { count: stats.unconvertedCurrencyCount } }}
+        </div>
+      }
       <div class="stats-grid">
         <article class="stat-card accent">
           <span>{{ 'DASHBOARD.NET_POSITION' | translate }}</span>

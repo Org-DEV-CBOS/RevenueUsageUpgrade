@@ -18,6 +18,11 @@ export function getFieldError(
   if (errors['min']) {
     return translate.instant('VALIDATION.MIN_VALUE', { min: errors['min'].min });
   }
+  if (errors['maxlength']) {
+    return translate.instant('VALIDATION.MAX_LENGTH', {
+      max: errors['maxlength'].requiredLength,
+    });
+  }
   if (errors['duplicateAccountNumber']) {
     return translate.instant('ACCOUNTS.DUPLICATE_NUMBER');
   }
@@ -31,6 +36,8 @@ export function getFieldError(
 export function markFormTouched(form: FormGroup): void {
   Object.values(form.controls).forEach((control: AbstractControl) => {
     control.markAsTouched();
-    control.updateValueAndValidity();
+    // Re-running validators must not republish valueChanges: forms where one field
+    // resets another on change would wipe the dependent field during submit.
+    control.updateValueAndValidity({ emitEvent: false });
   });
 }

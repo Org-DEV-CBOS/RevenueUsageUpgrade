@@ -110,7 +110,7 @@ public sealed class CorrespondentRequestHandler :
 
     private static CorrespondentAccountDto Map(CorrespondentAccount x) => new(
         x.CorrespondentAccountId, x.CorrespondentId, x.CorrespondentNameEn, x.CorrespondentNameAr,
-        x.CurrencyId, x.CurrencyCode, x.CurrencyNameEn, x.CurrencyNameAr, x.AccountNumber, x.OpeningBalance, x.CurrentBalance,
+        x.CurrencyId, x.CurrencyCode, x.CurrencySymbol, x.CurrencyNameEn, x.CurrencyNameAr, x.AccountNumber, x.OpeningBalance, x.CurrentBalance,
         x.IsActive, x.HasMovements);
 }
 

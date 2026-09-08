@@ -274,8 +274,8 @@ export const API_PAGE_CONFIGS = {
     columns: [
       { key: 'accountNumber', label: 'TRANSFERS.REFERENCE' },
       { key: 'correspondentNameEn', label: 'NAV.CORRESPONDENTS' },
-      { key: 'currencyNameEn', label: 'NAV.CURRENCIES' },
-      { key: 'currentBalance', label: 'DASHBOARD.TOTAL_BALANCE' },
+      { key: 'currencySymbol', label: 'CURRENCIES.SHORT_NAME' },
+      { key: 'currentBalance', label: 'ACCOUNTS.BALANCE' },
       { key: 'isActive', label: 'COMMON.ACTIVE' },
     ],
   },

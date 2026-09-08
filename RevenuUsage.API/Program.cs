@@ -1,6 +1,8 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Data.SqlClient;
 using RevenuUsage.Application;
 using RevenuUsage.Application.Common.Interfaces;
 using RevenuUsage.Application.Interfaces;
@@ -104,23 +106,47 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 {
     exceptionHandlerApp.Run(async context =>
     {
-        context.Response.ContentType = "application/json";
         var exception = context.Features.Get<IExceptionHandlerPathFeature>()?.Error;
 
-        // Determine Status Code
+        // Navigating away or logging out aborts in-flight requests. SqlClient surfaces that
+        // either as OperationCanceledException or as a SqlException with number 0, and the
+        // socket is already gone, so there is nobody left to write a response body to.
+        if (context.RequestAborted.IsCancellationRequested
+            && exception is OperationCanceledException or SqlException { Number: 0 })
+        {
+            context.Response.StatusCode = 499; // Client Closed Request
+            return;
+        }
+
+        context.Response.ContentType = "application/json";
+
+        // Stored procedures raise business-rule failures with THROW <50000+>, which arrive
+        // as SqlException. Anything below 50000 is a genuine engine fault.
+        var isBusinessSqlError = exception is SqlException { Number: >= 50000 };
+
         var statusCode = exception switch
         {
+            ValidationException => StatusCodes.Status400BadRequest,
             InvalidCastException => StatusCodes.Status400BadRequest,
             ArgumentException => StatusCodes.Status400BadRequest,
+            _ when isBusinessSqlError => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError
         };
 
         context.Response.StatusCode = statusCode;
 
+        var message = exception switch
+        {
+            ValidationException validation => string.Join(" ", validation.Errors.Select(e => e.ErrorMessage)),
+            _ when isBusinessSqlError => exception!.Message,
+            _ when statusCode == StatusCodes.Status400BadRequest => exception?.Message,
+            _ => "An unexpected error occurred."
+        };
+
         var response = new
         {
             status = "Error",
-            message = exception?.Message
+            message
         };
 
         await context.Response.WriteAsJsonAsync(response);

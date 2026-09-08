@@ -1,0 +1,36 @@
+CREATE OR ALTER PROCEDURE dbo.uspGetCrossRate
+    @FromCurrencyId uniqueidentifier,
+    @ToCurrencyId uniqueidentifier,
+    @AsOfDate date = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @AsOfDate IS NULL
+        SET @AsOfDate = CAST(SYSUTCDATETIME() AS date);
+
+    -- ExchangeRates only stores <currency> -> USD, so a rate between two non-USD
+    -- currencies has to be derived by going through the dollar:
+    --   ToAmount = FromAmount * (From->USD) / (To->USD)
+    -- ufnUsdRates picks the latest rate published on or before @AsOfDate, so a
+    -- weekend or holiday falls back to the last working day rather than returning
+    -- nothing. RateValue is NULL when either side has no published rate.
+    DECLARE @fromRate decimal(19, 8), @toRate decimal(19, 8);
+
+    SELECT
+        @fromRate = MAX(CASE WHEN r.CurrencyId = @FromCurrencyId THEN r.RateToUsd END),
+        @toRate   = MAX(CASE WHEN r.CurrencyId = @ToCurrencyId   THEN r.RateToUsd END)
+    FROM dbo.ufnUsdRates(@AsOfDate) r
+    WHERE r.CurrencyId IN (@FromCurrencyId, @ToCurrencyId);
+
+    SELECT
+        @AsOfDate AS RateDate,
+        @FromCurrencyId AS FromCurrencyId,
+        @ToCurrencyId AS ToCurrencyId,
+        @fromRate AS FromRateToUsd,
+        @toRate AS ToRateToUsd,
+        CASE
+            WHEN @fromRate IS NULL OR @toRate IS NULL OR @toRate = 0 THEN NULL
+            ELSE CAST(@fromRate / @toRate AS decimal(19, 8))
+        END AS RateValue;
+END;

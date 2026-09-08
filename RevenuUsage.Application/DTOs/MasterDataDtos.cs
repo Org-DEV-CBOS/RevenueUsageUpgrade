@@ -10,3 +10,8 @@ public sealed record OperationTypeDto(Guid OperationTypeId, string OperationType
 public sealed record SaveOperationTypeDto(Guid? OperationTypeId, string OperationTypeCode, string OperationTypeNameEn, string? OperationTypeNameAr, bool IsActive = true, string? Actor = null);
 public sealed record UsageTypeDto(Guid UsageTypeId, string UsageTypeCode, string UsageTypeNameEn, string? UsageTypeNameAr, bool IsActive, bool HasMovements);
 public sealed record SaveUsageTypeDto(Guid? UsageTypeId, string UsageTypeCode, string UsageTypeNameEn, string? UsageTypeNameAr, bool IsActive = true, string? Actor = null);
+public sealed record ClientTypeDto(Guid ClientTypeId, string ClientTypeCode, string ClientTypeNameEn, string? ClientTypeNameAr, bool IsActive, bool HasMovements);
+/* No id-less variant: client types are renamed and deactivated, never created. */
+public sealed record SaveClientTypeDto(string ClientTypeNameEn, string? ClientTypeNameAr, bool IsActive = true, string? Actor = null);
+public sealed record ObligationTypeDto(Guid ObligationTypeId, string ObligationTypeNameEn, string? ObligationTypeNameAr, bool IsActive, bool HasMovements);
+public sealed record SaveObligationTypeDto(Guid? ObligationTypeId, string ObligationTypeNameEn, string? ObligationTypeNameAr, bool IsActive = true, string? Actor = null);

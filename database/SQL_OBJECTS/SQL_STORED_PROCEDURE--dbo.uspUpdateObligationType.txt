@@ -1,0 +1,22 @@
+CREATE OR ALTER PROCEDURE dbo.uspUpdateObligationType
+    @ObligationTypeId uniqueidentifier,
+    @ObligationTypeNameEn nvarchar(100),
+    @ObligationTypeNameAr nvarchar(100) = NULL,
+    @IsActive bit,
+    @ModifiedBy nvarchar(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.ObligationTypes
+    SET ObligationTypeNameEn = @ObligationTypeNameEn,
+        ObligationTypeNameAr = NULLIF(LTRIM(RTRIM(@ObligationTypeNameAr)), N''),
+        IsActive = @IsActive,
+        ModifiedTime = SYSUTCDATETIME(),
+        ModifiedBy = @ModifiedBy
+    WHERE ObligationTypeId = @ObligationTypeId
+      AND IsDeleted = 0;
+
+    IF @@ROWCOUNT = 0
+        THROW 51016, 'Obligation type not found.', 1;
+END;

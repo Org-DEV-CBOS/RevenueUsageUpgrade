@@ -1,0 +1,20 @@
+CREATE OR ALTER PROCEDURE dbo.uspGetObligationTypes
+    @ActiveOnly bit = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ot.ObligationTypeId,
+        ot.ObligationTypeNameEn,
+        ot.ObligationTypeNameAr,
+        ot.IsActive,
+        CAST(CASE WHEN EXISTS (
+            SELECT 1 FROM dbo.Obligations o
+            WHERE o.ObligationTypeId = ot.ObligationTypeId AND o.DeletedTime IS NULL
+        ) THEN 1 ELSE 0 END AS bit) AS HasMovements
+    FROM dbo.ObligationTypes ot
+    WHERE ot.IsDeleted = 0
+      AND (@ActiveOnly = 0 OR ot.IsActive = 1)
+    ORDER BY ot.ObligationTypeNameEn;
+END;

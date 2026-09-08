@@ -20,8 +20,15 @@ public sealed class GetObligationStatementQueryHandler : IQueryHandler<GetObliga
         var obligationDto = new ObligationDetailsDto(
             statement.Obligation.ObligationId,
             statement.Obligation.ObligationDate,
-            statement.Obligation.ClientName,
-            statement.Obligation.ClientType,
+            statement.Obligation.ClientNameEn,
+            statement.Obligation.ClientNameAr,
+            statement.Obligation.ClientTypeId,
+            statement.Obligation.ClientTypeCode,
+            statement.Obligation.ClientTypeNameEn,
+            statement.Obligation.ClientTypeNameAr,
+            statement.Obligation.ObligationTypeId,
+            statement.Obligation.ObligationTypeNameEn,
+            statement.Obligation.ObligationTypeNameAr,
             statement.Obligation.BankId,
             statement.Obligation.CompanyId,
             statement.Obligation.BankName,
@@ -29,9 +36,12 @@ public sealed class GetObligationStatementQueryHandler : IQueryHandler<GetObliga
             statement.Obligation.CurrencyId,
             statement.Obligation.CurrencyNameAr,
             statement.Obligation.CurrencyNameEn,
+            statement.Obligation.CurrencySymbol,
             statement.Obligation.TotalAmount,
             statement.Obligation.PaidAmount,
             statement.Obligation.RemainingAmount,
+            statement.Obligation.DueDate,
+            statement.Obligation.ReferenceNo,
             statement.Obligation.Notes);
 
         var paymentsDto = statement.Payments.Select(p => new ObligationPaymentDto(

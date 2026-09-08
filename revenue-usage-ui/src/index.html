@@ -6,8 +6,49 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <style>
+    /*
+      Shown until Angular bootstraps and replaces the contents of <app-root>.
+      Inline and untranslated on purpose: neither styles.scss nor the i18n files
+      have loaded yet at this point. app-splash then covers the wait for OIDC
+      discovery, using the same background so the handoff is not visible.
+    */
+    .boot-splash {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      gap: 1.5rem;
+      background: linear-gradient(180deg, #000428 0%, #004e92 100%);
+    }
+
+    .boot-splash img {
+      width: 112px;
+      height: 112px;
+      object-fit: contain;
+    }
+
+    .boot-splash span {
+      width: 34px;
+      height: 34px;
+      border: 3px solid rgba(255, 255, 255, 0.28);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: boot-splash-spin 0.9s linear infinite;
+    }
+
+    @keyframes boot-splash-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
-  <app-root></app-root>
+  <app-root>
+    <div class="boot-splash">
+      <img src="/cbos-logo-white.png" alt="">
+      <span></span>
+    </div>
+  </app-root>
 </body>
 </html>

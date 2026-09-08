@@ -1,0 +1,21 @@
+CREATE OR ALTER PROCEDURE dbo.uspDeleteObligationType
+    @ObligationTypeId uniqueidentifier,
+    @DeletedBy nvarchar(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1 FROM dbo.Obligations
+        WHERE ObligationTypeId = @ObligationTypeId AND DeletedTime IS NULL
+    )
+        THROW 51014, 'Obligation type is in use.', 1;
+
+    UPDATE dbo.ObligationTypes
+    SET IsDeleted = 1,
+        IsActive = 0,
+        DeletedTime = SYSUTCDATETIME(),
+        DeletedBy = @DeletedBy
+    WHERE ObligationTypeId = @ObligationTypeId
+      AND IsDeleted = 0;
+END;

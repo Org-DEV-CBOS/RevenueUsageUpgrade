@@ -7,8 +7,16 @@ public sealed record ObligationStatementDto(
 public sealed record ObligationDetailsDto(
     Guid ObligationId,
     DateTime ObligationDate,
-    string ClientName,
-    string ClientType,
+    /* The bank or the company, whichever the client type points at. */
+    string? ClientNameEn,
+    string? ClientNameAr,
+    Guid ClientTypeId,
+    string? ClientTypeCode,
+    string? ClientTypeNameEn,
+    string? ClientTypeNameAr,
+    Guid? ObligationTypeId,
+    string? ObligationTypeNameEn,
+    string? ObligationTypeNameAr,
     Guid? BankId,
     Guid? CompanyId,
     string? BankName,
@@ -16,9 +24,12 @@ public sealed record ObligationDetailsDto(
     Guid CurrencyId,
     string CurrencyNameAr,
     string CurrencyNameEn,
+    string? CurrencySymbol,
     decimal TotalAmount,
     decimal PaidAmount,
     decimal RemainingAmount,
+    DateTime? DueDate,
+    string? ReferenceNo,
     string? Notes);
 
 public sealed record ObligationPaymentDto(

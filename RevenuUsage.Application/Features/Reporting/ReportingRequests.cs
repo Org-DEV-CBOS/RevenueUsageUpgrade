@@ -7,7 +7,7 @@ namespace RevenuUsage.Application.Features.Reporting;
 
 public record GetDashboardQuery(DateTime AsOfDate) : IRequest<DashboardSummary>;
 public record GetForeignReserveReportQuery(DateTime StartDate, DateTime EndDate) : IRequest<IReadOnlyList<ForeignReserveReportRow>>;
-public record GetObligationReportQuery(DateTime? StartDate, DateTime? EndDate, string? Status, string? ClientType = null) : IRequest<IReadOnlyList<ObligationReportRow>>;
+public record GetObligationReportQuery(DateTime? StartDate, DateTime? EndDate, string? Status, Guid? ClientTypeId = null) : IRequest<IReadOnlyList<ObligationReportRow>>;
 public record GetCreditMovementsReportQuery(DateTime StartDate, DateTime EndDate, string? SearchValue) : IRequest<IReadOnlyList<MovementReportRow>>;
 public record GetDebitMovementsReportQuery(DateTime StartDate, DateTime EndDate, string? SearchValue) : IRequest<IReadOnlyList<MovementReportRow>>;
 public record GetResourcesReportQuery(DateTime? StartDate, DateTime? EndDate) : IRequest<IReadOnlyList<ResourceSummaryReportRow>>;
@@ -33,7 +33,7 @@ public sealed class ReportingHandler :
         (await _repository.GetForeignReserveAsync(query.StartDate, query.EndDate, ct)).ToList();
 
     public async Task<IReadOnlyList<ObligationReportRow>> Handle(GetObligationReportQuery query, CancellationToken ct) =>
-        (await _repository.GetObligationsAsync(query.StartDate, query.EndDate, query.Status, query.ClientType, ct)).ToList();
+        (await _repository.GetObligationsAsync(query.StartDate, query.EndDate, query.Status, query.ClientTypeId, ct)).ToList();
 
     public async Task<IReadOnlyList<MovementReportRow>> Handle(GetCreditMovementsReportQuery query, CancellationToken ct) =>
         (await _repository.GetCreditMovementsAsync(query.StartDate, query.EndDate, query.SearchValue, ct)).ToList();
@@ -59,7 +59,6 @@ public sealed class ObligationReportValidator : AbstractValidator<GetObligationR
     {
         RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate!.Value).When(x => x.StartDate.HasValue && x.EndDate.HasValue);
         RuleFor(x => x.Status).Must(s => s is null or "Open" or "Paid" or "Overdue");
-        RuleFor(x => x.ClientType).Must(t => t is null || ObligationClientTypes.IsValid(t)).WithMessage("ClientType must be Bank, Company or Other.");
     }
 }
 

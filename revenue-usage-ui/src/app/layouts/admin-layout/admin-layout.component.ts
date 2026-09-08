@@ -50,5 +50,7 @@ export class AdminLayoutComponent {
     { labelKey: 'NAV.COMPANIES', icon: '🏭', route: '/admin/companies' },
     { labelKey: 'NAV.COUNTRIES', icon: '🌍', route: '/admin/countries' },
     { labelKey: 'NAV.CURRENCIES', icon: '💱', route: '/admin/currencies' },
+    { labelKey: 'NAV.OBLIGATION_TYPES', icon: '📑', route: '/admin/obligation-types' },
+    { labelKey: 'NAV.CLIENT_TYPES', icon: '🏷️', route: '/admin/client-types' },
   ];
 }

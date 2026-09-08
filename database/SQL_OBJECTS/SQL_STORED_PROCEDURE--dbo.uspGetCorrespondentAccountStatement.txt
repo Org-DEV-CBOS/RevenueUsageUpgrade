@@ -1,1 +1,129 @@
-CREATE OR ALTER PROCEDURE dbo.uspGetCorrespondentAccountStatement @CorrespondentAccountId uniqueidentifier,@StartDate datetime2=NULL,@EndDate datetime2=NULL AS BEGIN DECLARE @opening decimal(19,4)=(SELECT OpeningBalance FROM dbo.CorrespondentAccounts WHERE CorrespondentAccountId=@CorrespondentAccountId);WITH e AS(SELECT CAST(ResourceDate AS datetime2)EventDate,'Resource'EventType,Amount AmountIn,CAST(0 AS decimal(19,4))AmountOut,Notes FROM dbo.Resources WHERE CorrespondentAccountId=@CorrespondentAccountId AND DeletedTime IS NULL UNION ALL SELECT TransferDate,'Transfer',0,Amount,Purpose FROM dbo.Transfers WHERE CorrespondentAccountId=@CorrespondentAccountId AND TransferStatus='Confirmed' AND DeletedTime IS NULL UNION ALL SELECT TransactionDate,'Coverage in',Amount,0,Narration FROM dbo.Coverages WHERE ToCorrespondentAccountId=@CorrespondentAccountId AND DeletedTime IS NULL UNION ALL SELECT TransactionDate,'Coverage out',0,Amount,Narration FROM dbo.Coverages WHERE FromCorrespondentAccountId=@CorrespondentAccountId AND DeletedTime IS NULL UNION ALL SELECT TransactionDate,'Deal in',ToAmount,0,Narration FROM dbo.Deals WHERE ToCorrespondentAccountId=@CorrespondentAccountId AND DeletedTime IS NULL UNION ALL SELECT TransactionDate,'Deal out',0,FromAmount,Narration FROM dbo.Deals WHERE FromCorrespondentAccountId=@CorrespondentAccountId AND DeletedTime IS NULL UNION ALL SELECT CAST(PaymentDate AS datetime2),'Obligation',0,Amount,Notes FROM dbo.ObligationPayments WHERE CorrespondentAccountId=@CorrespondentAccountId AND DeletedTime IS NULL),f AS(SELECT * FROM e WHERE(@StartDate IS NULL OR EventDate>=@StartDate)AND(@EndDate IS NULL OR EventDate<DATEADD(day,1,CONVERT(date,@EndDate))))SELECT EventDate,EventType,AmountIn,AmountOut,@opening+SUM(AmountIn-AmountOut)OVER(ORDER BY EventDate ROWS UNBOUNDED PRECEDING)RunningBalance,Notes FROM f ORDER BY EventDate;END;
+CREATE OR ALTER PROCEDURE dbo.uspGetCorrespondentAccountStatement
+    @CorrespondentAccountId uniqueidentifier,
+    @StartDate datetime2 = NULL,
+    @EndDate datetime2 = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @accountExists bit = 0;
+    DECLARE @opening decimal(19, 4) = 0;
+
+    SELECT @accountExists = 1,
+           @opening = COALESCE(OpeningBalance, 0)
+    FROM dbo.CorrespondentAccounts
+    WHERE CorrespondentAccountId = @CorrespondentAccountId;
+
+    WITH e AS (
+        SELECT CAST(ResourceDate AS datetime2) AS EventDate, 'Resource' AS EventType,
+               Amount AS AmountIn, CAST(0 AS decimal(19, 4)) AS AmountOut, Notes AS Notes
+        FROM dbo.Resources
+        WHERE CorrespondentAccountId = @CorrespondentAccountId AND DeletedTime IS NULL
+
+        UNION ALL
+        SELECT TransferDate, 'Transfer', 0, Amount, Purpose
+        FROM dbo.Transfers
+        WHERE CorrespondentAccountId = @CorrespondentAccountId
+          AND TransferStatus = 'Confirmed' AND DeletedTime IS NULL
+
+        UNION ALL
+        SELECT TransactionDate, 'Coverage in', Amount, 0, Narration
+        FROM dbo.Coverages
+        WHERE ToCorrespondentAccountId = @CorrespondentAccountId AND DeletedTime IS NULL
+
+        UNION ALL
+        SELECT TransactionDate, 'Coverage out', 0, Amount, Narration
+        FROM dbo.Coverages
+        WHERE FromCorrespondentAccountId = @CorrespondentAccountId AND DeletedTime IS NULL
+
+        UNION ALL
+        SELECT TransactionDate, 'Deal in', ToAmount, 0, Narration
+        FROM dbo.Deals
+        WHERE ToCorrespondentAccountId = @CorrespondentAccountId AND DeletedTime IS NULL
+
+        UNION ALL
+        SELECT TransactionDate, 'Deal out', 0, FromAmount, Narration
+        FROM dbo.Deals
+        WHERE FromCorrespondentAccountId = @CorrespondentAccountId AND DeletedTime IS NULL
+
+        UNION ALL
+        SELECT CAST(PaymentDate AS datetime2), 'Obligation', 0, Amount, Notes
+        FROM dbo.ObligationPayments
+        WHERE CorrespondentAccountId = @CorrespondentAccountId AND DeletedTime IS NULL
+    ),
+    -- Movements before the window roll into the brought-forward balance so the
+    -- running balance stays correct when the caller filters by date.
+    broughtForward AS (
+        SELECT COALESCE(SUM(AmountIn - AmountOut), 0) AS NetBefore
+        FROM e
+        WHERE @StartDate IS NOT NULL AND EventDate < @StartDate
+    ),
+    f AS (
+        SELECT *
+        FROM e
+        WHERE (@StartDate IS NULL OR EventDate >= @StartDate)
+          AND (@EndDate IS NULL OR EventDate < DATEADD(day, 1, CONVERT(date, @EndDate)))
+    ),
+    ledger AS (
+        /*
+        The statement opens with what the account was worth going into the window, so the
+        running balance below has a stated starting point instead of an implied one.
+        IsOpening marks it because it is not a movement: it carries no amounts, and its
+        date is the start of the window rather than the date of anything that happened.
+        */
+        SELECT
+            0 AS SortOrder,
+            CAST(1 AS bit) AS IsOpening,
+            CAST(NULL AS date) AS DaySort,
+            0 AS DirectionSort,
+            CAST(@StartDate AS datetime2) AS EventDate,
+            CAST(NULL AS nvarchar(50)) AS EventType,
+            CAST(0 AS decimal(19, 4)) AS AmountIn,
+            CAST(0 AS decimal(19, 4)) AS AmountOut,
+            @opening + bf.NetBefore AS RunningBalance,
+            CAST(NULL AS nvarchar(500)) AS Notes
+        FROM broughtForward bf
+        WHERE @accountExists = 1
+
+        UNION ALL
+
+        /*
+        Movements are captured against a date, not a timestamp, so everything on a given
+        day shares one sort key and their sequence within the day is ours to choose. We
+        post what came in ahead of what went out: the day closes on the same balance
+        either way, but the account never dips into a deficit it was never actually in.
+        The running balance uses these same keys so it reads down the page in order.
+        */
+        SELECT
+            1,
+            CAST(0 AS bit),
+            CONVERT(date, f.EventDate),
+            CASE WHEN f.AmountIn > 0 THEN 0 ELSE 1 END,
+            f.EventDate,
+            f.EventType,
+            f.AmountIn,
+            f.AmountOut,
+            @opening + bf.NetBefore
+                + SUM(f.AmountIn - f.AmountOut) OVER (
+                    ORDER BY CONVERT(date, f.EventDate),
+                             CASE WHEN f.AmountIn > 0 THEN 0 ELSE 1 END,
+                             f.EventDate,
+                             f.EventType,
+                             f.AmountOut,
+                             f.AmountIn
+                    ROWS UNBOUNDED PRECEDING),
+            f.Notes
+        FROM f
+        CROSS JOIN broughtForward bf
+    )
+    SELECT
+        IsOpening,
+        EventDate,
+        EventType,
+        AmountIn,
+        AmountOut,
+        RunningBalance,
+        Notes
+    FROM ledger
+    ORDER BY SortOrder, DaySort, DirectionSort, EventDate, EventType, AmountOut, AmountIn;
+END;

@@ -21,6 +21,7 @@ public sealed class CreateTransferCommandHandler : ICommandHandler<CreateTransfe
             request.BeneficiaryId,
             request.Purpose,
             request.ReferenceNo,
+            request.StatementDate,
             request.CreatedBy,
             request.TransferDate,
             request.Amount,

@@ -8,14 +8,43 @@ import { BankFormComponent, BankListComponent } from './features/banks/bank-page
 import { CompanyFormComponent, CompanyListComponent } from './features/companies/company-pages.component';
 import { CountryFormComponent, CountryListComponent } from './features/countries/country-pages.component';
 import { TransferListComponent } from './features/transfers/transfer-list.component';
+import { TransferFormComponent } from './features/transfers/transfer-form.component';
 import { API_PAGE_CONFIGS, ApiRoutePageComponent } from './features/api-pages/api-route-page.component';
+import { REPORT_CONFIGS, ReportPageComponent } from './features/reports/report-page.component';
+import {
+  ResourceEntryFormComponent,
+  ResourceEntryListComponent,
+} from './features/operations/resource-pages.component';
+import {
+  CoverageFormComponent,
+  CoverageListComponent,
+} from './features/operations/coverage-pages.component';
+import { DealFormComponent, DealListComponent } from './features/operations/deal-pages.component';
+import {
+  ObligationDetailComponent,
+  ObligationFormComponent,
+  ObligationListComponent,
+} from './features/operations/obligation-pages.component';
+import {
+  ReserveFormComponent,
+  ReserveListComponent,
+} from './features/operations/reserve-pages.component';
+import {
+  AccountStatementComponent,
+  BankPositionComponent,
+  CurrencyStatementComponent,
+} from './features/statements/statement-pages.component';
 import {
   AccountFormComponent,
   AccountListComponent,
   BeneficiaryFormComponent,
   BeneficiaryListComponent,
+  ClientTypeFormComponent,
+  ClientTypeListComponent,
   CurrencyFormComponent,
   CurrencyListComponent,
+  ObligationTypeFormComponent,
+  ObligationTypeListComponent,
   ResourceFormComponent,
   ResourceListComponent,
 } from './features/admin/admin-entity-pages.component';
@@ -29,6 +58,14 @@ function apiRoute(path: string, key: keyof typeof API_PAGE_CONFIGS): Route {
     path,
     component: ApiRoutePageComponent,
     data: { apiPage: API_PAGE_CONFIGS[key] },
+  };
+}
+
+function reportRoute(path: string, key: keyof typeof REPORT_CONFIGS): Route {
+  return {
+    path,
+    component: ReportPageComponent,
+    data: { report: REPORT_CONFIGS[key] },
   };
 }
 
@@ -54,16 +91,40 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: UserDashboardComponent },
       apiRoute('accounts', 'accounts'),
+
+      { path: 'resources', component: ResourceEntryListComponent },
+      { path: 'resources/create', component: ResourceEntryFormComponent },
+
       { path: 'transfers', component: TransferListComponent },
-      apiRoute('obligations', 'obligations'),
+      { path: 'transfers/create', component: TransferFormComponent },
+
+      { path: 'coverages', component: CoverageListComponent },
+      { path: 'coverages/create', component: CoverageFormComponent },
+
+      { path: 'deals', component: DealListComponent },
+      { path: 'deals/create', component: DealFormComponent },
+
+      { path: 'obligations', component: ObligationListComponent },
+      { path: 'obligations/create', component: ObligationFormComponent },
+      { path: 'obligations/:id', component: ObligationDetailComponent },
+
+      { path: 'reserves', component: ReserveListComponent },
+      { path: 'reserves/create', component: ReserveFormComponent },
+
       apiRoute('currencies', 'currencies'),
       apiRoute('exchange-rates', 'exchangeRates'),
-      apiRoute('deals', 'deals'),
-      apiRoute('coverages', 'coverages'),
-      apiRoute('reserves', 'reserves'),
-      apiRoute('reports/balances', 'correspondentBalances'),
-      apiRoute('reports/obligations', 'obligationsReport'),
-      apiRoute('reports/foreign-reserve', 'foreignReserveReport'),
+
+      { path: 'statements/account', component: AccountStatementComponent },
+      { path: 'statements/currency', component: CurrencyStatementComponent },
+      { path: 'statements/bank-position', component: BankPositionComponent },
+
+      reportRoute('reports/balances', 'correspondentBalances'),
+      reportRoute('reports/obligations', 'obligations'),
+      reportRoute('reports/foreign-reserve', 'foreignReserve'),
+      reportRoute('reports/credit-movements', 'creditMovements'),
+      reportRoute('reports/debit-movements', 'debitMovements'),
+      reportRoute('reports/resources', 'resources'),
+
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },
@@ -97,6 +158,11 @@ export const routes: Routes = [
       { path: 'currencies', component: CurrencyListComponent },
       { path: 'currencies/create', component: CurrencyFormComponent },
       { path: 'currencies/edit/:id', component: CurrencyFormComponent },
+      { path: 'obligation-types', component: ObligationTypeListComponent },
+      { path: 'obligation-types/create', component: ObligationTypeFormComponent },
+      { path: 'obligation-types/edit/:id', component: ObligationTypeFormComponent },
+      { path: 'client-types', component: ClientTypeListComponent },
+      { path: 'client-types/edit/:id', component: ClientTypeFormComponent },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

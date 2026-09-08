@@ -21,22 +21,32 @@ import {
   UpdateCountryRequest,
 } from '../models/country.model';
 import {
+  AccountStatementRow,
   Beneficiary,
+  ClientType,
   Correspondent,
   CorrespondentAccount,
   Coverage,
   CreateTransferRequest,
   Currency,
+  CurrencyStatementRow,
   DashboardSummary,
   Deal,
   DeleteMasterDataRequest,
+  CrossRate,
+  ExchangeRateRow,
+  FinalBankPosition,
+  MovementReportRow,
   Obligation,
+  ObligationStatement,
+  ObligationType,
   PagedResponse,
   ReserveSnapshot,
+  ResourceListItem,
   ResourceType,
   TransferListItem,
 } from '../models/common.model';
-import { SYSTEM_USER } from '../constants/system-user';
+import { AuthService } from '../auth/auth.service';
 
 export const LOOKUP_PAGE_SIZE = 500;
 
@@ -46,6 +56,13 @@ export interface PageQuery {
   pageNumber?: number;
   search?: string;
 }
+
+export interface DateRangeQuery {
+  startDate?: string;
+  endDate?: string;
+}
+
+export type ExportFormat = 'xlsx' | 'pdf';
 
 function toHttpParams(params?: Record<string, unknown> | object): HttpParams | undefined {
   if (!params) {
@@ -157,6 +174,7 @@ export class LookupsApiService {
 @Injectable({ providedIn: 'root' })
 export class CorrespondentsApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/correspondents`;
 
   getPaged(params?: { activeOnly?: boolean } & PageQuery) {
@@ -172,16 +190,16 @@ export class CorrespondentsApiService {
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post<string>(this.baseUrl, { createdBy: SYSTEM_USER, ...payload });
+    return this.http.post<string>(this.baseUrl, { createdBy: this.auth.actor(), ...payload });
   }
 
   update(id: string, payload: Record<string, unknown>) {
-    return this.http.put(`${this.baseUrl}/${id}`, { modifiedBy: SYSTEM_USER, ...payload });
+    return this.http.put(`${this.baseUrl}/${id}`, { modifiedBy: this.auth.actor(), ...payload });
   }
 
   delete(id: string, deletedBy?: string) {
     return this.http.delete(`${this.baseUrl}/${id}`, {
-      body: { deletedBy: deletedBy ?? SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: deletedBy ?? this.auth.actor() } satisfies DeleteMasterDataRequest,
     });
   }
 }
@@ -189,6 +207,7 @@ export class CorrespondentsApiService {
 @Injectable({ providedIn: 'root' })
 export class CorrespondentAccountsApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/correspondentaccounts`;
 
   getPaged(params?: { correspondentId?: string; currencyId?: string; activeOnly?: boolean } & PageQuery) {
@@ -204,16 +223,16 @@ export class CorrespondentAccountsApiService {
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post<string>(this.baseUrl, { ...payload, createdBy: SYSTEM_USER });
+    return this.http.post<string>(this.baseUrl, { ...payload, createdBy: this.auth.actor() });
   }
 
   update(id: string, payload: Record<string, unknown>) {
-    return this.http.put(`${this.baseUrl}/${id}`, { ...payload, modifiedBy: SYSTEM_USER });
+    return this.http.put(`${this.baseUrl}/${id}`, { ...payload, modifiedBy: this.auth.actor() });
   }
 
   delete(id: string) {
     return this.http.delete(`${this.baseUrl}/${id}`, {
-      body: { deletedBy: SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: this.auth.actor() } satisfies DeleteMasterDataRequest,
     });
   }
 }
@@ -221,6 +240,7 @@ export class CorrespondentAccountsApiService {
 @Injectable({ providedIn: 'root' })
 export class BeneficiariesApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/beneficiaries`;
 
   getPaged(params?: { activeOnly?: boolean } & PageQuery) {
@@ -232,21 +252,21 @@ export class BeneficiariesApiService {
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post(this.baseUrl, { ...payload, actor: SYSTEM_USER });
+    return this.http.post(this.baseUrl, { ...payload, actor: this.auth.actor() });
   }
 
   update(id: string, payload: Record<string, unknown>) {
-    return this.http.put(`${this.baseUrl}/${id}`, { ...payload, actor: SYSTEM_USER });
+    return this.http.put(`${this.baseUrl}/${id}`, { ...payload, actor: this.auth.actor() });
   }
 
   delete(id: string) {
     return this.http.delete(`${this.baseUrl}/${id}`, {
-      body: { deletedBy: SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: this.auth.actor() } satisfies DeleteMasterDataRequest,
     });
   }
 
-  getTransfers(beneficiaryId: string, params?: { startDate?: string; endDate?: string }) {
-    return this.http.get<unknown[]>(`${this.baseUrl}/${beneficiaryId}/transfers`, {
+  getTransfers(beneficiaryId: string, params?: DateRangeQuery & PageQuery) {
+    return this.http.get<PagedResponse<TransferListItem>>(`${this.baseUrl}/${beneficiaryId}/transfers`, {
       params: toHttpParams(params),
     });
   }
@@ -255,6 +275,7 @@ export class BeneficiariesApiService {
 @Injectable({ providedIn: 'root' })
 export class CurrenciesApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/currencies`;
 
   getPaged(params?: PageQuery) {
@@ -266,16 +287,16 @@ export class CurrenciesApiService {
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post(this.baseUrl, { ...payload, actor: SYSTEM_USER });
+    return this.http.post(this.baseUrl, { ...payload, actor: this.auth.actor() });
   }
 
   update(id: string, payload: Record<string, unknown>) {
-    return this.http.put(`${this.baseUrl}/${id}`, { ...payload, actor: SYSTEM_USER });
+    return this.http.put(`${this.baseUrl}/${id}`, { ...payload, actor: this.auth.actor() });
   }
 
   delete(id: string) {
     return this.http.delete(`${this.baseUrl}/${id}`, {
-      body: { deletedBy: SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: this.auth.actor() } satisfies DeleteMasterDataRequest,
     });
   }
 
@@ -292,18 +313,25 @@ export class CurrenciesApiService {
   getExchangeRates(
     params?: { rateDate?: string; fromCurrencyId?: string; toCurrencyId?: string } & PageQuery,
   ) {
-    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/exchange-rates`, {
+    return this.http.get<PagedResponse<ExchangeRateRow>>(`${this.baseUrl}/exchange-rates`, {
       params: toHttpParams(params),
     });
   }
 
+  /** Rate between two currencies as of a date, derived through USD by the server. */
+  getCrossRate(fromCurrencyId: string, toCurrencyId: string, asOfDate?: string) {
+    return this.http.get<CrossRate>(`${this.baseUrl}/cross-rate`, {
+      params: toHttpParams({ fromCurrencyId, toCurrencyId, asOfDate }),
+    });
+  }
+
   addExchangeRate(payload: Record<string, unknown>) {
-    return this.http.post(`${this.baseUrl}/exchange-rates`, { ...payload, createdBy: SYSTEM_USER });
+    return this.http.post(`${this.baseUrl}/exchange-rates`, { ...payload, createdBy: this.auth.actor() });
   }
 
   deleteExchangeRate(exchangeRateId: string) {
     return this.http.delete(`${this.baseUrl}/exchange-rates/${exchangeRateId}`, {
-      body: { deletedBy: SYSTEM_USER },
+      body: { exchangeRateId, deletedBy: this.auth.actor() },
     });
   }
 
@@ -317,6 +345,7 @@ export class CurrenciesApiService {
 @Injectable({ providedIn: 'root' })
 export class TransfersApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/transfer`;
 
   getTransfers(params?: QueryParams) {
@@ -324,35 +353,48 @@ export class TransfersApiService {
   }
 
   createTransfer(payload: CreateTransferRequest) {
-    return this.http.post(this.baseUrl, { ...payload, createdBy: payload.createdBy ?? SYSTEM_USER });
+    return this.http.post(this.baseUrl, { ...payload, createdBy: payload.createdBy ?? this.auth.actor() });
   }
 
-  confirmTransfer(transferId: string, confirmedBy = SYSTEM_USER) {
-    return this.http.put(`${this.baseUrl}/ConfirmTransfer`, { transferId, confirmedBy });
-  }
-
-  rejectTransfer(transferId: string, rejectReason: string, rejectedBy = SYSTEM_USER) {
-    return this.http.put(`${this.baseUrl}/RejectTransfer`, { transferId, rejectReason, rejectedBy });
-  }
-
-  deleteTransfer(transferId: string, deletedBy = SYSTEM_USER) {
-    return this.http.delete(`${this.baseUrl}/${transferId}`, { body: { transferId, deletedBy } });
-  }
-
-  getCorrespondentAccountStatement(params: QueryParams) {
-    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/Statement/GetCorrespondentAccountStatement`, {
-      params: toHttpParams(params),
+  /** Reference and statement date are only sent when the transfer is still missing them. */
+  confirmTransfer(transferId: string, referenceNo?: string | null, statementDate?: string | null) {
+    return this.http.put(`${this.baseUrl}/ConfirmTransfer`, {
+      transferId,
+      referenceNo: referenceNo || null,
+      statementDate: statementDate || null,
+      confirmedBy: this.auth.actor(),
     });
   }
 
+  rejectTransfer(transferId: string, rejectReason: string) {
+    return this.http.put(`${this.baseUrl}/RejectTransfer`, {
+      transferId,
+      rejectReason,
+      rejectedBy: this.auth.actor(),
+    });
+  }
+
+  deleteTransfer(transferId: string) {
+    return this.http.delete(`${this.baseUrl}/${transferId}`, {
+      body: { transferId, deletedBy: this.auth.actor() },
+    });
+  }
+
+  getCorrespondentAccountStatement(params: QueryParams) {
+    return this.http.get<PagedResponse<AccountStatementRow>>(
+      `${this.baseUrl}/Statement/GetCorrespondentAccountStatement`,
+      { params: toHttpParams(params) },
+    );
+  }
+
   getFinalBankPosition(date: string) {
-    return this.http.get<unknown>(`${this.baseUrl}/Statement/GetFinalBankPosition`, {
+    return this.http.get<FinalBankPosition>(`${this.baseUrl}/Statement/GetFinalBankPosition`, {
       params: toHttpParams({ date }),
     });
   }
 
   getCurrencyStatement(currencyId: string, asOfDate: string, params?: PageQuery) {
-    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/Statement/GetCurrencyStatement`, {
+    return this.http.get<PagedResponse<CurrencyStatementRow>>(`${this.baseUrl}/Statement/GetCurrencyStatement`, {
       params: toHttpParams({ currencyId, asOfDate, ...params }),
     });
   }
@@ -361,44 +403,88 @@ export class TransfersApiService {
 @Injectable({ providedIn: 'root' })
 export class ObligationsApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/obligations`;
 
-  getPaged(params?: PageQuery) {
+  getPaged(params?: { activeOnly?: boolean; clientTypeId?: string } & PageQuery) {
     return this.http.get<PagedResponse<Obligation>>(this.baseUrl, { params: toHttpParams(params) });
   }
 
-  getAll() {
-    return this.getPaged({ page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
+  getAll(params?: { activeOnly?: boolean; clientTypeId?: string }) {
+    return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
+  }
+
+  getClientTypesPaged(params?: { activeOnly?: boolean } & PageQuery) {
+    return this.http.get<PagedResponse<ClientType>>(`${this.baseUrl}/client-types`, {
+      params: toHttpParams(params),
+    });
+  }
+
+  getClientTypes(params?: { activeOnly?: boolean }) {
+    return this.getClientTypesPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
+  }
+
+  /** Client types are renamed and deactivated, never created or deleted. */
+  updateClientType(id: string, payload: Record<string, unknown>) {
+    return this.http.put(`${this.baseUrl}/client-types/${id}`, { actor: this.auth.actor(), ...payload });
+  }
+
+  getTypesPaged(params?: { activeOnly?: boolean } & PageQuery) {
+    return this.http.get<PagedResponse<ObligationType>>(`${this.baseUrl}/types`, {
+      params: toHttpParams(params),
+    });
+  }
+
+  getTypes(params?: { activeOnly?: boolean }) {
+    return this.getTypesPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
+  }
+
+  createType(payload: Record<string, unknown>) {
+    return this.http.post(`${this.baseUrl}/types`, { actor: this.auth.actor(), ...payload });
+  }
+
+  updateType(id: string, payload: Record<string, unknown>) {
+    return this.http.put(`${this.baseUrl}/types/${id}`, { actor: this.auth.actor(), ...payload });
+  }
+
+  deleteType(id: string) {
+    return this.http.delete(`${this.baseUrl}/types/${id}`, {
+      body: { deletedBy: this.auth.actor() } satisfies DeleteMasterDataRequest,
+    });
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post(this.baseUrl, payload);
+    return this.http.post<{ obligationId: string }>(this.baseUrl, {
+      ...payload,
+      createdBy: this.auth.actor(),
+    });
   }
 
   delete(id: string) {
     return this.http.delete(`${this.baseUrl}/${id}`, {
-      body: { deletedBy: SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: this.auth.actor() } satisfies DeleteMasterDataRequest,
     });
   }
 
   addPayment(payload: Record<string, unknown>) {
-    return this.http.post(`${this.baseUrl}/payment`, { ...payload, createdBy: SYSTEM_USER });
+    return this.http.post(`${this.baseUrl}/payment`, { ...payload, createdBy: this.auth.actor() });
   }
 
   deletePayment(obligationPaymentId: string) {
     return this.http.delete(`${this.baseUrl}/payment/${obligationPaymentId}`, {
-      body: { deletedBy: SYSTEM_USER },
+      body: { obligationPaymentId, deletedBy: this.auth.actor() },
     });
   }
 
   getStatement(obligationId: string) {
-    return this.http.get<unknown>(`${this.baseUrl}/statement/${obligationId}`);
+    return this.http.get<ObligationStatement>(`${this.baseUrl}/statement/${obligationId}`);
   }
 }
 
 @Injectable({ providedIn: 'root' })
 export class ResourcesApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/resources`;
 
   getTypesPaged(params?: { activeOnly?: boolean } & PageQuery) {
@@ -410,97 +496,111 @@ export class ResourcesApiService {
   }
 
   createType(payload: Record<string, unknown>) {
-    return this.http.post(`${this.baseUrl}/types`, { actor: SYSTEM_USER, ...payload });
+    return this.http.post(`${this.baseUrl}/types`, { actor: this.auth.actor(), ...payload });
   }
 
   updateType(id: string, payload: Record<string, unknown>) {
-    return this.http.put(`${this.baseUrl}/types/${id}`, { actor: SYSTEM_USER, ...payload });
+    return this.http.put(`${this.baseUrl}/types/${id}`, { actor: this.auth.actor(), ...payload });
   }
 
   deleteType(id: string, deletedBy?: string) {
     return this.http.delete(`${this.baseUrl}/types/${id}`, {
-      body: { deletedBy: deletedBy ?? SYSTEM_USER } satisfies DeleteMasterDataRequest,
+      body: { deletedBy: deletedBy ?? this.auth.actor() } satisfies DeleteMasterDataRequest,
     });
   }
 
-  addResource(payload: Record<string, unknown>) {
-    return this.http.post(this.baseUrl, { ...payload, createdBy: SYSTEM_USER });
+  getPaged(
+    params?: { correspondentAccountId?: string; resourceTypeId?: string } & DateRangeQuery & PageQuery,
+  ) {
+    return this.http.get<PagedResponse<ResourceListItem>>(this.baseUrl, { params: toHttpParams(params) });
   }
 
-  getStatement(correspondentAccountId: string, params?: { startDate?: string; endDate?: string } & PageQuery) {
+  addResource(payload: Record<string, unknown>) {
+    return this.http.post(this.baseUrl, { ...payload, createdBy: this.auth.actor() });
+  }
+
+  getStatement(correspondentAccountId: string, params?: DateRangeQuery & PageQuery) {
     return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/statement/${correspondentAccountId}`, {
       params: toHttpParams(params),
     });
   }
 
   deleteResource(resourceId: string) {
-    return this.http.delete(`${this.baseUrl}/${resourceId}`, { body: { deletedBy: SYSTEM_USER } });
+    return this.http.delete(`${this.baseUrl}/${resourceId}`, {
+      body: { resourceId, deletedBy: this.auth.actor() },
+    });
   }
 }
 
 @Injectable({ providedIn: 'root' })
 export class DealsApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/deals`;
 
-  getPaged(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string } & PageQuery) {
+  getPaged(params?: { correspondentAccountId?: string } & DateRangeQuery & PageQuery) {
     return this.http.get<PagedResponse<Deal>>(this.baseUrl, { params: toHttpParams(params) });
   }
 
-  getAll(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string }) {
+  getAll(params?: { correspondentAccountId?: string } & DateRangeQuery) {
     return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post(this.baseUrl, payload);
+    return this.http.post<{ dealId: string }>(this.baseUrl, { ...payload, createdBy: this.auth.actor() });
   }
 
   delete(id: string) {
-    return this.http.delete(`${this.baseUrl}/${id}`, { body: { deletedBy: SYSTEM_USER } });
+    return this.http.delete(`${this.baseUrl}/${id}`, { body: { deletedBy: this.auth.actor() } });
   }
 }
 
 @Injectable({ providedIn: 'root' })
 export class CoveragesApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/coverages`;
 
-  getPaged(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string } & PageQuery) {
+  getPaged(params?: { correspondentAccountId?: string } & DateRangeQuery & PageQuery) {
     return this.http.get<PagedResponse<Coverage>>(this.baseUrl, { params: toHttpParams(params) });
   }
 
-  getAll(params?: { correspondentAccountId?: string; startDate?: string; endDate?: string }) {
+  getAll(params?: { correspondentAccountId?: string } & DateRangeQuery) {
     return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post(this.baseUrl, payload);
+    return this.http.post<{ coverageId: string }>(this.baseUrl, { ...payload, createdBy: this.auth.actor() });
   }
 
   delete(id: string) {
-    return this.http.delete(`${this.baseUrl}/${id}`, { body: { deletedBy: SYSTEM_USER } });
+    return this.http.delete(`${this.baseUrl}/${id}`, { body: { deletedBy: this.auth.actor() } });
   }
 }
 
 @Injectable({ providedIn: 'root' })
 export class ReservesApiService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly baseUrl = `${environment.apiUrl}/reserves`;
 
-  getPaged(params?: { startDate?: string; endDate?: string } & PageQuery) {
+  getPaged(params?: DateRangeQuery & PageQuery) {
     return this.http.get<PagedResponse<ReserveSnapshot>>(this.baseUrl, { params: toHttpParams(params) });
   }
 
-  getAll(params?: { startDate?: string; endDate?: string }) {
+  getAll(params?: DateRangeQuery) {
     return this.getPaged({ ...params, page: 1, pageSize: LOOKUP_PAGE_SIZE }).pipe(map(pagedItems));
   }
 
   create(payload: Record<string, unknown>) {
-    return this.http.post(this.baseUrl, payload);
+    return this.http.post<{ reserveSnapshotId: string }>(this.baseUrl, {
+      ...payload,
+      createdBy: this.auth.actor(),
+    });
   }
 
   delete(id: string) {
-    return this.http.delete(`${this.baseUrl}/${id}`, { body: { deletedBy: SYSTEM_USER } });
+    return this.http.delete(`${this.baseUrl}/${id}`, { body: { deletedBy: this.auth.actor() } });
   }
 }
 
@@ -519,8 +619,40 @@ export class ReportsApiService {
     });
   }
 
-  getObligationsReport(params?: { startDate?: string; endDate?: string; status?: string } & PageQuery) {
+  getObligationsReport(
+    params?: { status?: string; clientTypeId?: string } & DateRangeQuery & PageQuery,
+  ) {
     return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/obligations`, { params: toHttpParams(params) });
+  }
+
+  getCreditMovements(startDate: string, endDate: string, params?: { searchValue?: string } & PageQuery) {
+    return this.http.get<PagedResponse<MovementReportRow>>(`${this.baseUrl}/credit-movements`, {
+      params: toHttpParams({ startDate, endDate, ...params }),
+    });
+  }
+
+  getDebitMovements(startDate: string, endDate: string, params?: { searchValue?: string } & PageQuery) {
+    return this.http.get<PagedResponse<MovementReportRow>>(`${this.baseUrl}/debit-movements`, {
+      params: toHttpParams({ startDate, endDate, ...params }),
+    });
+  }
+
+  getResourcesReport(params?: DateRangeQuery & PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/resources`, { params: toHttpParams(params) });
+  }
+
+  getCorrespondentBalancesReport(params?: { searchValue?: string } & PageQuery) {
+    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/correspondent-balances`, {
+      params: toHttpParams(params),
+    });
+  }
+
+  /** Reports expose `/export` siblings that stream xlsx or pdf for the same filters. */
+  export(reportPath: string, format: ExportFormat, filters?: Record<string, unknown>) {
+    return this.http.get(`${this.baseUrl}/${reportPath}/export`, {
+      params: toHttpParams({ ...filters, format }),
+      responseType: 'blob',
+    });
   }
 }
 

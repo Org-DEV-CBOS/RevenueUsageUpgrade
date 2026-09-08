@@ -1,7 +1,8 @@
 {
   "APP": {
     "TITLE": "RUTS",
-    "SUBTITLE": "Resources And Uses Tracking System"
+    "SUBTITLE": "Resources And Uses Tracking System",
+    "STARTING": "Starting up, please wait..."
   },
   "COMMON": {
     "SEARCH": "Search",
@@ -15,6 +16,7 @@
     "INACTIVE": "Inactive",
     "YES": "Yes",
     "NO": "No",
+    "ALL": "All",
     "LOADING": "Loading...",
     "NO_DATA": "No records found",
     "CONFIRM_DELETE": "Are you sure you want to delete this record?",
@@ -27,10 +29,26 @@
     "CLOSE": "Close",
     "SUCCESS": "Operation completed successfully",
     "ERROR": "An error occurred",
-    "CODE": "Code"
+    "CODE": "Code",
+    "FROM_DATE": "From",
+    "TO_DATE": "To",
+    "APPLY": "Apply",
+    "CLEAR": "Clear",
+    "NARRATION": "Narration",
+    "EXPORT_EXCEL": "Excel",
+    "EXPORT_PDF": "PDF"
+  },
+  "ERRORS": {
+    "OFFLINE": "We can't reach the server right now. Please check your connection and try again.",
+    "SESSION_EXPIRED": "Your session has expired. Please sign in again.",
+    "FORBIDDEN": "You don't have permission to do this.",
+    "NOT_FOUND": "We couldn't find what you were looking for.",
+    "SERVER": "Something went wrong on our side. Please try again in a moment.",
+    "GENERIC": "Something went wrong. Please try again."
   },
   "VALIDATION": {
-    "MIN_VALUE": "Value must be at least {{min}}"
+    "MIN_VALUE": "Value must be at least {{min}}",
+    "MAX_LENGTH": "Must not exceed {{max}} characters"
   },
   "AUTH": {
     "LOGIN": "Sign in",
@@ -53,11 +71,14 @@
     "RESOURCES": "Resources",
     "TRANSACTIONS": "Transactions",
     "OBLIGATIONS": "Obligations",
+    "OBLIGATION_TYPES": "Obligation Types",
+    "CLIENT_TYPES": "Client Types",
     "GOLD_AND_CASH": "Gold And Cash",
     "CURRENCIES": "Currencies",
     "REPLENISHMENTS": "Replenishments",
     "DEALING": "Dealing",
     "REPORTS": "Reports",
+    "STATEMENTS": "Statements",
     "BALANCES": "Balances",
     "FOREIGN_RESERVE": "Foreign Reserve",
     "COUNTRIES": "Countries",
@@ -131,29 +152,136 @@
     "DECIMALS": "Decimal Places"
   },
   "RESOURCES": {
-    "ADD": "+ Add Resource",
+    "TITLE": "Resources",
+    "ADD": "+ Add Resource Type",
     "NAME": "Resource Name",
     "NAME_EN": "Resource Name (English)",
-    "NAME_AR": "Resource Name (Arabic)"
+    "NAME_AR": "Resource Name (Arabic)",
+    "ENTRIES": "Resources",
+    "ADD_ENTRY": "+ Record Resource",
+    "TYPE": "Resource Type",
+    "NOTES": "Notes",
+    "REMITTING_BANK": "Remitting Bank",
+    "STATEMENT_DATE": "Statement Date"
   },
   "TRANSFERS": {
     "TITLE": "Transactions",
+    "ADD": "+ New Transaction",
     "REFERENCE": "Reference No",
     "AMOUNT": "Amount",
     "DATE": "Transfer Date",
     "PURPOSE": "Purpose",
-    "STATUS": "Status"
+    "STATUS": "Status",
+    "PENDING": "Pending",
+    "CONFIRMED": "Confirmed",
+    "REJECTED": "Rejected",
+    "CONFIRM": "Confirm",
+    "REJECT": "Reject",
+    "REJECT_REASON": "Reason for rejection",
+    "CONFIRMED_MESSAGE": "Transaction confirmed",
+    "REJECTED_MESSAGE": "Transaction rejected",
+    "EXCEEDS_BALANCE": "Amount is greater than the current account balance",
+    "CREATED_PENDING_HINT": "The transaction is created as pending and only debits the account once confirmed.",
+    "STATEMENT_DATE": "Statement Date",
+    "REQUIRED_ON_CONFIRM_HINT": "Reference number and statement date are optional now, but both are required to confirm the transaction.",
+    "CONFIRM_DETAILS_PROMPT": "Enter the reference number and statement date to confirm this transaction."
+  },
+  "COVERAGES": {
+    "ADD": "+ New Replenishment",
+    "FROM_ACCOUNT": "From Account",
+    "TO_ACCOUNT": "To Account",
+    "PICK_SOURCE_FIRST": "Pick a source account first; only accounts in the same currency can receive."
+  },
+  "DEALS": {
+    "ADD": "+ New Deal",
+    "FROM_ACCOUNT": "From Account",
+    "TO_ACCOUNT": "To Account",
+    "FROM_AMOUNT": "Amount Sold",
+    "TO_AMOUNT": "Amount Bought",
+    "TO_AMOUNT_HINT": "Calculated as amount sold × rate.",
+    "SUGGESTED_RATE": "Rate on the selected date",
+    "DATE_DRIVES_RATE": "The exchange rate is fetched for this date.",
+    "VIA_USD": "via USD",
+    "NO_RATE_FOR_DATE": "No published rate for this pair on or before the selected date. Enter the rate manually."
+  },
+  "OBLIGATIONS": {
+    "ADD": "+ New Obligation",
+    "CLIENT": "Client",
+    "CLIENT_TYPE": "Client Type",
+    "OBLIGATION_TYPE": "Obligation Type",
+    "PICK_CLIENT_TYPE": "Choose a client type to continue.",
+    "TOTAL": "Total Amount",
+    "PAID": "Paid",
+    "REMAINING": "Remaining",
+    "DUE_DATE": "Due Date",
+    "OPEN_ONLY": "Open only",
+    "STATEMENT": "Obligation Statement",
+    "PAYMENTS": "Payments",
+    "ADD_PAYMENT": "Record a payment",
+    "PAY": "Pay",
+    "SAME_CURRENCY_HINT": "Only accounts in the obligation currency can be used.",
+    "STATUS_OPEN": "Open",
+    "STATUS_PAID": "Paid",
+    "STATUS_OVERDUE": "Overdue"
+  },
+  "OBLIGATION_TYPES": {
+    "ADD": "+ Add Obligation Type",
+    "NAME": "Obligation Type",
+    "NAME_EN": "Obligation Type (English)",
+    "NAME_AR": "Obligation Type (Arabic)",
+    "IN_USE": "In use by an obligation and cannot be deleted"
+  },
+  "CLIENT_TYPES": {
+    "NAME": "Client Type",
+    "NAME_EN": "Client Type (English)",
+    "NAME_AR": "Client Type (Arabic)",
+    "FIXED_SET_HINT": "Obligations are recorded against a bank or a company, so these two client types cannot be added to or removed. You can rename them or turn one off.",
+    "DEACTIVATE_HINT": "Existing obligations use this client type. Turning it off only stops new obligations from being recorded against it."
+  },
+  "RESERVES": {
+    "ADD": "+ New Snapshot",
+    "GOLD": "Gold Value",
+    "CASH": "Cash In Hand",
+    "DEPOSITS": "Deposits",
+    "TOTAL": "Total",
+    "AT_LEAST_ONE": "Enter at least one value greater than zero"
+  },
+  "STATEMENTS": {
+    "ACCOUNT": "Account Statement",
+    "CURRENCY": "Currency Statement",
+    "BANK_POSITION": "Bank Position",
+    "EVENT": "Movement",
+    "IN": "In",
+    "OUT": "Out",
+    "RUNNING_BALANCE": "Running Balance",
+    "OPENING_BALANCE": "Opening Balance",
+    "CLOSING_BALANCE": "Closing Balance",
+    "AS_OF": "As of",
+    "PICK_ACCOUNT": "Select an account to view its statement.",
+    "PICK_CURRENCY": "Select a currency to view its statement.",
+    "COVERAGE_IN": "Replenishments In",
+    "COVERAGE_OUT": "Replenishments Out",
+    "CONFIRMED_TRANSFERS": "Confirmed Transactions",
+    "CORRESPONDENT_BALANCES": "Correspondent Balances",
+    "NET_POSITION": "Net Position"
+  },
+  "REPORTS": {
+    "CREDIT_MOVEMENTS": "Credit Movements",
+    "DEBIT_MOVEMENTS": "Debit Movements",
+    "RESOURCES_SUMMARY": "Resources Summary",
+    "USAGES": "Usages"
   },
   "DASHBOARD": {
     "TITLE": "Dashboard",
     "WELCOME": "Welcome back, {{name}}",
-    "TOTAL_BALANCE": "Total Balance",
-    "NET_POSITION": "Net Position",
-    "TOTAL_RESOURCES": "Total Resources",
-    "CONFIRMED_TRANSFERS": "Confirmed Transfers",
+    "TOTAL_BALANCE": "Total Balance (USD)",
+    "NET_POSITION": "Net Position (USD)",
+    "TOTAL_RESOURCES": "Total Resources (USD)",
+    "UNCONVERTED_WARNING": "{{count}} currency/currencies with a balance have no published USD rate and are excluded from these totals.",
+    "CONFIRMED_TRANSFERS": "Confirmed Transfers (USD)",
     "CONFIRMED_TRANSFER_COUNT": "Confirmed Transfer Count",
     "ACTIVE_OBLIGATIONS": "Active Obligations",
-    "OUTSTANDING_OBLIGATIONS": "Outstanding Obligations",
+    "OUTSTANDING_OBLIGATIONS": "Outstanding Obligations (USD)",
     "PENDING_TRANSFERS": "Pending Transfers",
     "RESERVES": "Reserves",
     "ACCOUNTS": "Accounts",

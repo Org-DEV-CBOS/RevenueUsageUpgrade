@@ -1,0 +1,27 @@
+CREATE OR ALTER PROCEDURE dbo.uspUpdateClientType
+    @ClientTypeId uniqueidentifier,
+    @ClientTypeNameEn nvarchar(100),
+    @ClientTypeNameAr nvarchar(100) = NULL,
+    @IsActive bit,
+    @ModifiedBy nvarchar(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    /*
+    Client types are not created or deleted: dbo.uspCreateObligation branches on
+    ClientTypeCode, so a third row would have no rules behind it. Renaming and
+    deactivating is all the admin screens offer, and ClientTypeCode stays put.
+    */
+
+    UPDATE dbo.ClientTypes
+    SET ClientTypeNameEn = @ClientTypeNameEn,
+        ClientTypeNameAr = @ClientTypeNameAr,
+        IsActive = @IsActive,
+        ModifiedTime = SYSUTCDATETIME(),
+        ModifiedBy = @ModifiedBy
+    WHERE ClientTypeId = @ClientTypeId;
+
+    IF @@ROWCOUNT = 0
+        THROW 51015, 'Client type not found.', 1;
+END;

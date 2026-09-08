@@ -28,6 +28,11 @@ public sealed class AddResourceToCorrespondentAccountCommandValidator
             .WithMessage("Notes must not exceed 300 characters.")
             .When(x => !string.IsNullOrEmpty(x.Notes));
 
+        RuleFor(x => x.ReferenceNo)
+            .MaximumLength(100)
+            .WithMessage("Reference number must not exceed 100 characters.")
+            .When(x => !string.IsNullOrEmpty(x.ReferenceNo));
+
         RuleFor(x => x.CreatedBy)
             .NotEmpty()
             .WithMessage("Created By is required.")

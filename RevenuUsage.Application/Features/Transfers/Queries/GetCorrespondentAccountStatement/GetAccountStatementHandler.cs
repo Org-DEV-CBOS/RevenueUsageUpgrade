@@ -18,6 +18,7 @@ namespace RevenuUsage.Application.Features.Transfers.Queries.GetCorrespondentAcc
                 request.EndDate);
 
             return results.Select(x => new AccountStatementDto(
+                x.IsOpening,
                 x.EventDate,
                 x.EventType,
                 x.AmountIn,

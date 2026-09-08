@@ -8,6 +8,9 @@ public class Resource
     public Guid ResourceTypeId { get; set; }
     public decimal Amount { get; set; }
     public string? Notes { get; set; }
+    public Guid? RemittingBankId { get; set; }
+    public string? ReferenceNo { get; set; }
+    public DateTime? StatementDate { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
     public DateTime CreatedTime { get; set; }
     public bool IsDeleted { get; set; }

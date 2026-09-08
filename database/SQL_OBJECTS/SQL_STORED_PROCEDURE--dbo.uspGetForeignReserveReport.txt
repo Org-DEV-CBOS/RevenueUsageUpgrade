@@ -1,1 +1,55 @@
-CREATE OR ALTER PROCEDURE dbo.uspGetForeignReserveReport @StartDate date,@EndDate date AS SELECT r.ReserveDate ReportDate,COALESCE((SELECT SUM(CurrentBalance)FROM dbo.CorrespondentAccounts WHERE IsDeleted=0),0)CorrespondentBalancesUsd,r.CashInHand CashInHandUsd,r.GoldValue GoldValueUsd,r.Deposits DepositsUsd,COALESCE((SELECT SUM(Amount)FROM dbo.Resources WHERE ResourceDate BETWEEN @StartDate AND @EndDate AND DeletedTime IS NULL),0)ResourcesUsd,COALESCE((SELECT SUM(Amount)FROM dbo.Transfers WHERE TransferDate<DATEADD(day,1,@EndDate)AND TransferDate>=@StartDate AND TransferStatus='Confirmed'AND DeletedTime IS NULL),0)UsagesUsd,COALESCE((SELECT SUM(CurrentBalance)FROM dbo.CorrespondentAccounts WHERE IsDeleted=0),0)+r.CashInHand+r.GoldValue+r.Deposits GrandTotalUsd FROM dbo.ReserveSnapshots r WHERE r.ReserveDate BETWEEN @StartDate AND @EndDate AND r.DeletedTime IS NULL ORDER BY r.ReserveDate;
+CREATE OR ALTER PROCEDURE dbo.uspGetForeignReserveReport
+    @StartDate date,
+    @EndDate date
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Correspondent balances, resources and usages are all held in the account's own
+    -- currency. Each is converted to USD at the latest rate on or before @EndDate so
+    -- the report's *Usd columns actually are USD.
+    DECLARE @rates TABLE (CurrencyId uniqueidentifier PRIMARY KEY, RateToUsd decimal(19, 8) NULL);
+    INSERT @rates (CurrencyId, RateToUsd)
+    SELECT CurrencyId, RateToUsd FROM dbo.ufnUsdRates(@EndDate);
+
+    DECLARE @corr decimal(19, 4) = COALESCE((
+        SELECT SUM(CAST(a.CurrentBalance * r.RateToUsd AS decimal(19, 4)))
+        FROM dbo.CorrespondentAccounts a
+        JOIN @rates r ON r.CurrencyId = a.CurrencyId
+        WHERE a.IsDeleted = 0
+    ), 0);
+
+    DECLARE @resources decimal(19, 4) = COALESCE((
+        SELECT SUM(CAST(res.Amount * r.RateToUsd AS decimal(19, 4)))
+        FROM dbo.Resources res
+        JOIN dbo.CorrespondentAccounts a ON a.CorrespondentAccountId = res.CorrespondentAccountId
+        JOIN @rates r ON r.CurrencyId = a.CurrencyId
+        WHERE res.ResourceDate BETWEEN @StartDate AND @EndDate
+          AND res.DeletedTime IS NULL
+    ), 0);
+
+    DECLARE @usages decimal(19, 4) = COALESCE((
+        SELECT SUM(CAST(t.Amount * r.RateToUsd AS decimal(19, 4)))
+        FROM dbo.Transfers t
+        JOIN dbo.CorrespondentAccounts a ON a.CorrespondentAccountId = t.CorrespondentAccountId
+        JOIN @rates r ON r.CurrencyId = a.CurrencyId
+        WHERE t.TransferDate >= @StartDate
+          AND t.TransferDate < DATEADD(day, 1, @EndDate)
+          AND t.TransferStatus = 'Confirmed'
+          AND t.DeletedTime IS NULL
+    ), 0);
+
+    SELECT
+        r.ReserveDate AS ReportDate,
+        @corr AS CorrespondentBalancesUsd,
+        r.CashInHand AS CashInHandUsd,
+        r.GoldValue AS GoldValueUsd,
+        r.Deposits AS DepositsUsd,
+        @resources AS ResourcesUsd,
+        @usages AS UsagesUsd,
+        @corr + r.CashInHand + r.GoldValue + r.Deposits AS GrandTotalUsd
+    FROM dbo.ReserveSnapshots r
+    WHERE r.ReserveDate BETWEEN @StartDate AND @EndDate
+      AND r.DeletedTime IS NULL
+    ORDER BY r.ReserveDate;
+END;

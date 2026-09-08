@@ -6,4 +6,7 @@ public sealed record AddResourceToCorrespondentAccountDto(
     decimal Amount,
     Guid ResourceTypeId,
     string? Notes,
+    Guid? RemittingBankId,
+    string? ReferenceNo,
+    DateTime? StatementDate,
     string CreatedBy);

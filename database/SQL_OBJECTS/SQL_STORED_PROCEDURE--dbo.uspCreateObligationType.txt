@@ -1,0 +1,12 @@
+CREATE OR ALTER PROCEDURE dbo.uspCreateObligationType
+    @ObligationTypeNameEn nvarchar(100),
+    @ObligationTypeNameAr nvarchar(100) = NULL,
+    @CreatedBy nvarchar(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT dbo.ObligationTypes (ObligationTypeNameEn, ObligationTypeNameAr, CreatedBy)
+    OUTPUT inserted.ObligationTypeId
+    VALUES (@ObligationTypeNameEn, NULLIF(LTRIM(RTRIM(@ObligationTypeNameAr)), N''), @CreatedBy);
+END;

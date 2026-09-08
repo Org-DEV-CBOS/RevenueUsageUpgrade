@@ -1,1 +1,29 @@
-CREATE OR ALTER PROCEDURE dbo.uspGetFinalBankPosition @PositionDate date AS BEGIN DECLARE @cash decimal(19,4)=0,@gold decimal(19,4)=0;SELECT TOP(1)@cash=CashInHand,@gold=GoldValue FROM dbo.ReserveSnapshots WHERE ReserveDate<=@PositionDate AND DeletedTime IS NULL ORDER BY ReserveDate DESC,CreatedTime DESC;DECLARE @corr decimal(19,4)=COALESCE((SELECT SUM(CurrentBalance)FROM dbo.CorrespondentAccounts WHERE IsDeleted=0),0);SELECT @PositionDate PositionDate,@cash CashInHandUsd,@gold GoldValueUsd,@corr TotalCorrespondentBalancesUsd,@cash+@gold+@corr BankNetPositionUsd;END;
+CREATE OR ALTER PROCEDURE dbo.uspGetFinalBankPosition
+    @PositionDate date
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @cash decimal(19, 4) = 0, @gold decimal(19, 4) = 0;
+
+    SELECT TOP (1) @cash = CashInHand, @gold = GoldValue
+    FROM dbo.ReserveSnapshots
+    WHERE ReserveDate <= @PositionDate AND DeletedTime IS NULL
+    ORDER BY ReserveDate DESC, CreatedTime DESC;
+
+    -- Correspondent balances are held per currency, so convert each to USD with the
+    -- latest rate on or before @PositionDate instead of summing raw amounts.
+    DECLARE @corr decimal(19, 4) = COALESCE((
+        SELECT SUM(CAST(a.CurrentBalance * r.RateToUsd AS decimal(19, 4)))
+        FROM dbo.CorrespondentAccounts a
+        JOIN dbo.ufnUsdRates(@PositionDate) r ON r.CurrencyId = a.CurrencyId
+        WHERE a.IsDeleted = 0
+    ), 0);
+
+    SELECT
+        @PositionDate AS PositionDate,
+        @cash AS CashInHandUsd,
+        @gold AS GoldValueUsd,
+        @corr AS TotalCorrespondentBalancesUsd,
+        @cash + @gold + @corr AS BankNetPositionUsd;
+END;
