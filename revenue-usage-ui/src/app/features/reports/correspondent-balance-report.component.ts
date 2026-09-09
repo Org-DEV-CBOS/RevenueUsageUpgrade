@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -8,6 +8,8 @@ import { ReportsApiService } from '../../core/services/api.service';
 import { today } from '../../core/utils/date.util';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { ExportButtonsComponent } from '../../shared/components/export-buttons/export-buttons.component';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 
 /**
  * Both correspondent balance reports. The route's `usdOnly` flag collapses every currency
@@ -17,7 +19,7 @@ import { ExportButtonsComponent } from '../../shared/components/export-buttons/e
 @Component({
   selector: 'app-correspondent-balance-report',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, ExportButtonsComponent],
+  imports: [ReactiveFormsModule, TranslatePipe, ExportButtonsComponent, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -32,11 +34,8 @@ import { ExportButtonsComponent } from '../../shared/components/export-buttons/e
         </label>
         <label class="grow">
           {{ 'COMMON.SEARCH' | translate }}
-          <input type="search" [formControl]="search" (keyup.enter)="load()" />
+          <app-search-field [formControl]="search" />
         </label>
-        <div class="filter-actions">
-          <button type="button" class="btn-primary" (click)="load()">{{ 'COMMON.APPLY' | translate }}</button>
-        </div>
       </div>
 
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
@@ -120,6 +119,7 @@ export class CorrespondentBalanceReportComponent implements OnInit {
   private readonly api = inject(ReportsApiService);
   private readonly language = inject(LanguageService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -136,6 +136,7 @@ export class CorrespondentBalanceReportComponent implements OnInit {
 
   ngOnInit(): void {
     this.usdOnly.set(this.route.snapshot.data['usdOnly'] === true);
+    bindLiveFilter(this.destroyRef, () => this.load(), this.asOfDate, this.search);
     this.load();
   }
 

@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
@@ -16,8 +17,10 @@ import {
   TransfersApiService,
 } from '../../core/services/api.service';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { LanguageService } from '../../core/services/language.service';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 
 export interface ApiPageColumn {
   key: string;
@@ -36,7 +39,7 @@ export interface ApiPageConfig {
 @Component({
   selector: 'app-api-route-page',
   standalone: true,
-  imports: [TranslatePipe, PaginationComponent],
+  imports: [TranslatePipe, PaginationComponent, ReactiveFormsModule, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -46,6 +49,10 @@ export interface ApiPageConfig {
       @if (error()) {
         <div class="error-banner">{{ error() }}</div>
       }
+
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
+      </div>
 
       <div class="panel">
         @if (loading()) {
@@ -99,6 +106,8 @@ export class ApiRoutePageComponent implements OnInit {
   private readonly reservesApi = inject(ReservesApiService);
   private readonly reportsApi = inject(ReportsApiService);
   private readonly language = inject(LanguageService);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   config: ApiPageConfig | null = null;
   readonly loading = signal(false);
@@ -107,9 +116,14 @@ export class ApiRoutePageComponent implements OnInit {
   readonly page = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
+  readonly searchControl = this.fb.nonNullable.control('');
 
   ngOnInit(): void {
     this.config = this.route.snapshot.data['apiPage'] as ApiPageConfig;
+    bindLiveFilter(this.destroyRef, () => {
+      this.page.set(1);
+      this.load();
+    }, this.searchControl);
     this.load();
   }
 
@@ -198,25 +212,26 @@ export class ApiRoutePageComponent implements OnInit {
   private resolveRequest(): Observable<unknown> | null {
     const page = this.page();
     const pageSize = this.pageSize();
+    const search = this.searchControl.value.trim() || undefined;
     switch (this.config?.endpoint) {
       case 'correspondents':
-        return this.correspondentsApi.getPaged({ page, pageSize });
+        return this.correspondentsApi.getPaged({ page, pageSize, search });
       case 'accounts':
-        return this.accountsApi.getPaged({ page, pageSize });
+        return this.accountsApi.getPaged({ page, pageSize, search });
       case 'beneficiaries':
-        return this.beneficiariesApi.getPaged({ page, pageSize });
+        return this.beneficiariesApi.getPaged({ page, pageSize, search });
       case 'currencies':
-        return this.currenciesApi.getPaged({ page, pageSize });
+        return this.currenciesApi.getPaged({ page, pageSize, search });
       case 'currency-balances':
         return this.currenciesApi.getBalances({ page, pageSize });
       case 'currency-exchange-rates':
-        return this.currenciesApi.getExchangeRates({ page, pageSize });
+        return this.currenciesApi.getExchangeRates({ page, pageSize, search });
       case 'currency-correspondent-balances':
         return this.currenciesApi.getCorrespondentBalances({ page, pageSize });
       case 'obligations':
-        return this.obligationsApi.getPaged({ page, pageSize });
+        return this.obligationsApi.getPaged({ page, pageSize, search });
       case 'resource-types':
-        return this.resourcesApi.getTypesPaged({ page, pageSize });
+        return this.resourcesApi.getTypesPaged({ page, pageSize, search });
       case 'deals':
         return this.dealsApi.getPaged({ page, pageSize });
       case 'coverages':

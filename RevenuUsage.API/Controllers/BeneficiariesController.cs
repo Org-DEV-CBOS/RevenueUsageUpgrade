@@ -26,8 +26,14 @@ public class BeneficiariesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(await _mediator.Send(new GetBeneficiariesQuery(activeOnly), ct), page, pageSize, pageNumber));
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetBeneficiariesQuery(activeOnly), ct);
+        var items = Paging.Search(result, search, x =>
+            [x.BeneficiaryCode, x.BeneficiaryNameEn, x.BeneficiaryNameAr]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
+    }
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] SaveBeneficiaryDto model, CancellationToken ct) => Ok(new { beneficiaryId = await _mediator.Send(new SaveBeneficiaryCommand(model with { BeneficiaryId = null }), ct) });
     [HttpPut("{id:guid}")]

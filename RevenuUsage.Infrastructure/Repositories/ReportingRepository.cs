@@ -16,8 +16,11 @@ public sealed class ReportingRepository : IReportingRepository
     public async Task<DashboardSummary> GetDashboardAsync(DateTime d, CancellationToken ct = default)
     {
         await using var db = new SqlConnection(_cs);
-        return await db.QuerySingleAsync<DashboardSummary>(
+        await using var reader = await db.QueryMultipleAsync(
             new CommandDefinition("dbo.uspGetDashboardSummary", new { AsOfDate = d.Date }, commandType: CommandType.StoredProcedure, cancellationToken: ct));
+        var summary = await reader.ReadSingleAsync<DashboardSummary>();
+        summary.CurrencyBalances = (await reader.ReadAsync<DashboardCurrencyBalance>()).ToList();
+        return summary;
     }
 
     public async Task<IEnumerable<ForeignReserveReportRow>> GetForeignReserveAsync(DateTime f, DateTime t, CancellationToken ct = default)

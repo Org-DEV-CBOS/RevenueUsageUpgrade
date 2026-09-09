@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -10,6 +10,8 @@ import { monthsAgo, today } from '../../core/utils/date.util';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { ExportButtonsComponent } from '../../shared/components/export-buttons/export-buttons.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 
 export type ReportEndpoint = 'foreign-reserve' | 'obligations';
 
@@ -39,7 +41,7 @@ export interface ReportConfig {
 @Component({
   selector: 'app-report-page',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslatePipe, PaginationComponent, ExportButtonsComponent],
+  imports: [ReactiveFormsModule, TranslatePipe, PaginationComponent, ExportButtonsComponent, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -65,7 +67,7 @@ export interface ReportConfig {
         @if (config?.search) {
           <label class="grow">
             {{ 'COMMON.SEARCH' | translate }}
-            <input type="search" [formControl]="search" (keyup.enter)="applyFilters()" />
+            <app-search-field [formControl]="search" />
           </label>
         }
         @if (config?.statusFilter) {
@@ -79,9 +81,6 @@ export interface ReportConfig {
             </select>
           </label>
         }
-        <div class="filter-actions">
-          <button type="button" class="btn-primary" (click)="applyFilters()">{{ 'COMMON.APPLY' | translate }}</button>
-        </div>
       </div>
 
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
@@ -143,6 +142,7 @@ export class ReportPageComponent implements OnInit {
   private readonly api = inject(ReportsApiService);
   private readonly language = inject(LanguageService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   config: ReportConfig | null = null;
 
@@ -163,10 +163,18 @@ export class ReportPageComponent implements OnInit {
     this.config = this.route.snapshot.data['report'] as ReportConfig;
 
     if (this.config?.dateRange === 'required') {
-      this.startDate.setValue(monthsAgo(1));
-      this.endDate.setValue(today());
+      this.startDate.setValue(monthsAgo(1), { emitEvent: false });
+      this.endDate.setValue(today(), { emitEvent: false });
     }
 
+    bindLiveFilter(
+      this.destroyRef,
+      () => this.applyFilters(),
+      this.startDate,
+      this.endDate,
+      this.search,
+      this.status,
+    );
     this.load();
   }
 

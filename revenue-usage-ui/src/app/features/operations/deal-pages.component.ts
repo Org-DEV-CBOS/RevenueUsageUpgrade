@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -13,6 +13,7 @@ import { today } from '../../core/utils/date.util';
 import { getFieldError, markFormTouched } from '../../core/utils/form-errors.util';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { FilterBarComponent } from '../../shared/components/filter-bar/filter-bar.component';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 import { MoneyInputComponent } from '../../shared/components/money-input/money-input.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SearchSelectComponent } from '../../shared/components/search-select/search-select.component';
@@ -106,6 +107,7 @@ export class DealListComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly fb = inject(FormBuilder);
   readonly lookups = inject(LookupCacheService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -120,6 +122,7 @@ export class DealListComponent implements OnInit {
 
   ngOnInit(): void {
     this.lookups.loadAccounts();
+    bindLiveFilter(this.destroyRef, () => this.applyFilters(), this.accountControl);
     this.load();
   }
 

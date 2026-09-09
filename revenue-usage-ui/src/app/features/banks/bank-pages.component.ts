@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -10,11 +10,13 @@ import { ToastService } from '../../core/services/toast.service';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 
 @Component({
   selector: 'app-bank-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -27,8 +29,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
       }
 
       <div class="search-row">
-        <input [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
-        <button type="button" class="btn-primary" (click)="applySearch()">{{ 'COMMON.SEARCH' | translate }}</button>
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
       </div>
 
       <div class="panel">
@@ -82,6 +83,7 @@ export class BankListComponent implements OnInit {
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -93,6 +95,7 @@ export class BankListComponent implements OnInit {
   readonly searchControl = this.fb.nonNullable.control('');
 
   ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => this.applySearch(), this.searchControl);
     this.loadBanks();
   }
 

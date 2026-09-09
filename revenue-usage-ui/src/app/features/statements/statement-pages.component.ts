@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -12,6 +12,7 @@ import { LookupCacheService } from '../../core/services/lookup-cache.service';
 import { monthsAgo, today } from '../../core/utils/date.util';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { FilterBarComponent } from '../../shared/components/filter-bar/filter-bar.component';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SearchSelectComponent } from '../../shared/components/search-select/search-select.component';
 import { MoneyPipe } from '../../shared/pipes/money.pipe';
@@ -121,6 +122,7 @@ interface StatementDay {
 export class AccountStatementComponent implements OnInit {
   private readonly api = inject(TransfersApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly lookups = inject(LookupCacheService);
 
   readonly loading = signal(false);
@@ -167,7 +169,7 @@ export class AccountStatementComponent implements OnInit {
 
   ngOnInit(): void {
     this.lookups.loadAccounts();
-    this.accountControl.valueChanges.subscribe(() => this.applyFilters());
+    bindLiveFilter(this.destroyRef, () => this.applyFilters(), this.accountControl);
   }
 
   applyFilters(): void {
@@ -244,9 +246,6 @@ export class AccountStatementComponent implements OnInit {
           {{ 'STATEMENTS.AS_OF' | translate }}
           <input type="date" [formControl]="asOfControl" [max]="maxDate" />
         </label>
-        <div class="filter-actions">
-          <button type="button" class="btn-primary" (click)="applyFilters()">{{ 'COMMON.APPLY' | translate }}</button>
-        </div>
       </div>
 
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
@@ -303,6 +302,7 @@ export class AccountStatementComponent implements OnInit {
 export class CurrencyStatementComponent implements OnInit {
   private readonly api = inject(TransfersApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly lookups = inject(LookupCacheService);
 
   readonly loading = signal(false);
@@ -318,7 +318,7 @@ export class CurrencyStatementComponent implements OnInit {
 
   ngOnInit(): void {
     this.lookups.loadCurrencies();
-    this.currencyControl.valueChanges.subscribe(() => this.applyFilters());
+    bindLiveFilter(this.destroyRef, () => this.applyFilters(), this.currencyControl, this.asOfControl);
   }
 
   applyFilters(): void {
@@ -382,9 +382,6 @@ export class CurrencyStatementComponent implements OnInit {
           {{ 'STATEMENTS.AS_OF' | translate }}
           <input type="date" [formControl]="dateControl" [max]="maxDate" />
         </label>
-        <div class="filter-actions">
-          <button type="button" class="btn-primary" (click)="load()">{{ 'COMMON.APPLY' | translate }}</button>
-        </div>
       </div>
 
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
@@ -417,6 +414,7 @@ export class CurrencyStatementComponent implements OnInit {
 export class BankPositionComponent implements OnInit {
   private readonly api = inject(TransfersApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -426,6 +424,7 @@ export class BankPositionComponent implements OnInit {
   readonly dateControl = this.fb.nonNullable.control(today());
 
   ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => this.load(), this.dateControl);
     this.load();
   }
 

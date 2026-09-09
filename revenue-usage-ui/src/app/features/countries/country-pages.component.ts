@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -9,16 +9,22 @@ import { ConfirmService } from '../../core/services/confirm.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 
 @Component({
   selector: 'app-country-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
         <h1>{{ 'COUNTRIES.TITLE' | translate }}</h1>
         <a routerLink="/admin/countries/create" class="btn-primary">{{ 'COUNTRIES.ADD' | translate }}</a>
+      </div>
+
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
       </div>
 
       <div class="panel">
@@ -62,13 +68,20 @@ export class CountryListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly countries = signal<Country[]>([]);
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
+  readonly searchControl = this.fb.nonNullable.control('');
 
   ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => {
+      this.currentPage.set(1);
+      this.load();
+    }, this.searchControl);
     this.load();
   }
 
@@ -103,7 +116,11 @@ export class CountryListComponent implements OnInit {
   }
 
   private load(): void {
-    this.api.getCountriesPaged({ page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+    this.api.getCountriesPaged({
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
+      search: this.searchControl.value.trim() || undefined,
+    }).subscribe({
       next: (response) => {
         this.countries.set(response.items ?? []);
         this.totalCount.set(response.totalCount ?? 0);

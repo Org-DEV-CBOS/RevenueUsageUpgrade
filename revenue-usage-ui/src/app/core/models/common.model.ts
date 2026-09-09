@@ -5,6 +5,9 @@ export interface DashboardSummary {
   totalAccountBalance: number;
   netPositionUsd: number;
   outstandingObligationsUsd: number;
+  cashInHandUsd: number;
+  goldValueUsd: number;
+  depositsUsd: number;
   reserveTotalUsd: number;
   /** Currencies with a balance but no published USD rate, so excluded from the totals. */
   unconvertedCurrencyCount: number;
@@ -19,6 +22,17 @@ export interface DashboardSummary {
   beneficiaryCount: number;
   resourceTypeCount: number;
   obligationCount: number;
+  currencyBalances?: DashboardCurrencyBalance[];
+}
+
+export interface DashboardCurrencyBalance {
+  currencyId: string;
+  currencyCode: string;
+  currencyNameEn: string;
+  currencyNameAr?: string;
+  currencySymbol?: string;
+  balance: number;
+  balanceUsd: number;
 }
 
 export interface PagedResponse<T> {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,6 +10,7 @@ import { LookupCacheService } from '../../core/services/lookup-cache.service';
 import { ToastService } from '../../core/services/toast.service';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { promptForReason, promptForTransferConfirmation } from '../../core/utils/prompt.util';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 import { FilterBarComponent } from '../../shared/components/filter-bar/filter-bar.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SearchSelectComponent } from '../../shared/components/search-select/search-select.component';
@@ -120,6 +121,7 @@ export class TransferListComponent implements OnInit {
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly lookups = inject(LookupCacheService);
 
   readonly loading = signal(false);
@@ -136,6 +138,7 @@ export class TransferListComponent implements OnInit {
 
   ngOnInit(): void {
     this.lookups.loadAccounts();
+    bindLiveFilter(this.destroyRef, () => this.applyFilters(), this.accountControl, this.statusControl);
     this.load();
   }
 

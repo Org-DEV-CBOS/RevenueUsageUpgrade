@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -12,11 +12,13 @@ import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 
 @Component({
   selector: 'app-correspondent-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, ReactiveFormsModule, LocalizedFieldPipe, PaginationComponent, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -29,8 +31,7 @@ import { SearchSelectComponent, SearchSelectOption } from '../../shared/componen
       }
 
       <div class="search-row">
-        <input [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
-        <button type="button" class="btn-primary" (click)="applySearch()">{{ 'COMMON.SEARCH' | translate }}</button>
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
       </div>
 
       <div class="panel">
@@ -82,6 +83,7 @@ export class CorrespondentListComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly confirm = inject(ConfirmService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -92,6 +94,7 @@ export class CorrespondentListComponent implements OnInit {
   readonly searchControl = this.fb.nonNullable.control('');
 
   ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => this.applySearch(), this.searchControl);
     this.load();
   }
 

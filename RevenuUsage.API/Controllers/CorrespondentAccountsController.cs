@@ -23,12 +23,14 @@ public sealed class CorrespondentAccountsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(
-            await _mediator.Send(new GetCorrespondentAccountsQuery(correspondentId, currencyId, activeOnly), ct),
-            page,
-            pageSize,
-            pageNumber));
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCorrespondentAccountsQuery(correspondentId, currencyId, activeOnly), ct);
+        var items = Paging.Search(result, search, x =>
+            [x.AccountNumber, x.CorrespondentNameEn, x.CorrespondentNameAr, x.CurrencyCode, x.CurrencySymbol, x.CurrencyNameEn, x.CurrencyNameAr]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CorrespondentAccountDto>> Get(Guid id, CancellationToken ct)

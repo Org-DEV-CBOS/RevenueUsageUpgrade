@@ -1,14 +1,20 @@
+/*
+Target DB: RUTS_NEW
+Dashboard summary now returns cash / gold / deposits separately, and a second
+result set of each currency's share of total correspondent balances (USD).
+
+Deploy this script, or the object in:
+    database/SQL_OBJECTS/SQL_STORED_PROCEDURE--dbo.uspGetDashboardSummary.txt
+
+Compatibility: no GO, safe to re-run.
+*/
+
 CREATE OR ALTER PROCEDURE dbo.uspGetDashboardSummary
     @AsOfDate date
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Every monetary total here is reported in USD. Accounts, resources, transfers
-    -- and obligations are all held in their own currency, so each amount is converted
-    -- with the latest rate published on or before @AsOfDate before being summed.
-    -- Amounts in a currency with no rate contribute NULL and drop out of the SUM;
-    -- UnconvertedCurrencyCount tells the caller how many were left out.
     DECLARE @rates TABLE (CurrencyId uniqueidentifier PRIMARY KEY, RateToUsd decimal(19, 8) NULL);
     INSERT @rates (CurrencyId, RateToUsd)
     SELECT CurrencyId, RateToUsd FROM dbo.ufnUsdRates(@AsOfDate);
@@ -86,7 +92,6 @@ BEGIN
         (SELECT COUNT(*) FROM dbo.ResourceTypes WHERE IsDeleted = 0) AS ResourceTypeCount,
         (SELECT COUNT(*) FROM dbo.Obligations WHERE DeletedTime IS NULL AND IsActive = 1) AS ObligationCount;
 
-    -- Second result set: each currency's share of TotalAccountBalance (USD).
     SELECT
         c.CurrencyId,
         c.CurrencyCode,

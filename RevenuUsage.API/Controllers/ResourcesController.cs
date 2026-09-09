@@ -29,8 +29,14 @@ public class ResourcesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(await _mediator.Send(new GetResourceTypesQuery(activeOnly), ct), page, pageSize, pageNumber));
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetResourceTypesQuery(activeOnly), ct);
+        var items = Paging.Search(result, search, x =>
+            [x.ResourceTypeCode, x.ResourceTypeNameEn, x.ResourceTypeNameAr]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
+    }
     [HttpPost("types")]
     public async Task<ActionResult> CreateType([FromBody] SaveResourceTypeDto model,CancellationToken ct)=>Ok(new{resourceTypeId=await _mediator.Send(new SaveResourceTypeCommand(model with{ResourceTypeId=null}),ct)});
     [HttpPut("types/{id:guid}")]

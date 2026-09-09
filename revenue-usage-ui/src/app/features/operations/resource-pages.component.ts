@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -11,6 +11,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { getFieldError, markFormTouched } from '../../core/utils/form-errors.util';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { today } from '../../core/utils/date.util';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 import { FilterBarComponent } from '../../shared/components/filter-bar/filter-bar.component';
 import { MoneyInputComponent } from '../../shared/components/money-input/money-input.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
@@ -110,6 +111,7 @@ export class ResourceEntryListComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly fb = inject(FormBuilder);
   readonly lookups = inject(LookupCacheService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -124,6 +126,7 @@ export class ResourceEntryListComponent implements OnInit {
 
   ngOnInit(): void {
     this.lookups.loadResourceTypes();
+    bindLiveFilter(this.destroyRef, () => this.applyFilters(), this.resourceTypeControl);
     this.load();
   }
 

@@ -30,8 +30,14 @@ public class ObligationsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(await _mediator.Send(new GetObligationsQuery(activeOnly, clientTypeId), ct), page, pageSize, pageNumber));
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetObligationsQuery(activeOnly, clientTypeId), ct);
+        var items = Paging.Search(result, search, x =>
+            [x.ClientNameEn, x.ClientNameAr, x.ClientTypeNameEn, x.ClientTypeNameAr, x.ObligationTypeNameEn, x.ObligationTypeNameAr, x.CurrencyNameEn, x.CurrencyNameAr, x.CurrencySymbol, x.ReferenceNo, x.Notes, x.BankName, x.CompanyName]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
+    }
     [HttpPost] public async Task<ActionResult> Create(CreateObligationCommand command,CancellationToken ct)=>Ok(new{obligationId=await _mediator.Send(command,ct)});
     [HttpDelete("{id:guid}")] public async Task<ActionResult> Delete(Guid id,[FromBody]DeleteMasterDataDto dto,CancellationToken ct){await _mediator.Send(new DeleteObligationCommand(id,dto.DeletedBy??string.Empty),ct);return NoContent();}
 
@@ -65,8 +71,14 @@ public class ObligationsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(await _mediator.Send(new GetObligationTypesQuery(activeOnly), ct), page, pageSize, pageNumber));
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetObligationTypesQuery(activeOnly), ct);
+        var items = Paging.Search(result, search, x =>
+            [x.ObligationTypeNameEn, x.ObligationTypeNameAr]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
+    }
 
     [HttpPost("types")]
     public async Task<ActionResult> CreateType([FromBody] SaveObligationTypeDto model, CancellationToken ct) =>

@@ -32,8 +32,14 @@ public class CurrenciesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(await _mediator.Send(new GetCurrenciesQuery(activeOnly), ct), page, pageSize, pageNumber));
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCurrenciesQuery(activeOnly), ct);
+        var items = Paging.Search(result, search, x =>
+            [x.CurrencyCode, x.CurrencyNameEn, x.CurrencyNameAr, x.Symbol]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
+    }
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] SaveCurrencyDto model,CancellationToken ct)=>Ok(new{currencyId=await _mediator.Send(new SaveCurrencyCommand(model with{CurrencyId=null}),ct)});
     [HttpPut("{id:guid}")]
@@ -88,10 +94,13 @@ public class CurrenciesController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
         [FromQuery] int pageNumber = 0,
+        [FromQuery] string? search = null,
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetExchangeRateQuery(rateDate, fromCurrencyId, toCurrencyId), cancellationToken);
-        return Ok(Paging.Create(result, page, pageSize, pageNumber));
+        var items = Paging.Search(result, search, x =>
+            [x.FromCurrencyCode, x.FromCurrencyNameEn, x.FromCurrencyNameAr, x.FromCurrencySymbol, x.ToCurrencyCode, x.ToCurrencyNameEn, x.ToCurrencyNameAr, x.RateDate, x.RateValue]);
+        return Ok(Paging.Create(items, page, pageSize, pageNumber));
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -15,8 +15,10 @@ import { extractHttpError } from '../../core/utils/http-error.util';
 import { MoneyInputComponent } from '../../shared/components/money-input/money-input.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { SearchSelectComponent } from '../../shared/components/search-select/search-select.component';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 import { MoneyPipe } from '../../shared/pipes/money.pipe';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 
 @Component({
   selector: 'app-obligation-list',
@@ -28,6 +30,8 @@ import { MoneyPipe } from '../../shared/pipes/money.pipe';
     MoneyPipe,
     LocalizedFieldPipe,
     PaginationComponent,
+    ReactiveFormsModule,
+    SearchFieldComponent,
   ],
   template: `
     <div class="page">
@@ -59,6 +63,10 @@ import { MoneyPipe } from '../../shared/pipes/money.pipe';
       </div>
 
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
+
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
+      </div>
 
       <div class="panel">
         @if (loading()) {
@@ -127,6 +135,8 @@ export class ObligationListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -135,8 +145,13 @@ export class ObligationListComponent implements OnInit {
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
   readonly openOnly = signal(false);
+  readonly searchControl = this.fb.nonNullable.control('');
 
   ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => {
+      this.page.set(1);
+      this.load();
+    }, this.searchControl);
     this.load();
   }
 
@@ -180,6 +195,7 @@ export class ObligationListComponent implements OnInit {
         page: this.page(),
         pageSize: this.pageSize(),
         activeOnly: this.openOnly(),
+        search: this.searchControl.value.trim() || undefined,
       })
       .subscribe({
         next: (data) => {

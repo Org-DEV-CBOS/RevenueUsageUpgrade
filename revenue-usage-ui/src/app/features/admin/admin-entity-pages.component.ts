@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -24,18 +24,20 @@ import { ToastService } from '../../core/services/toast.service';
 import { extractHttpError } from '../../core/utils/http-error.util';
 import { getFieldError, markFormTouched } from '../../core/utils/form-errors.util';
 import { generateEntityCode } from '../../core/utils/generate-code';
+import { bindLiveFilter } from '../../core/utils/live-filter.util';
 import { LocalizedFieldPipe } from '../../shared/pipes/localized-name.pipe';
 import { MoneyPipe } from '../../shared/pipes/money.pipe';
 import { MoneyInputComponent } from '../../shared/components/money-input/money-input.component';
 import { SearchSelectComponent, SearchSelectOption } from '../../shared/components/search-select/search-select.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { ConfirmService } from '../../core/services/confirm.service';
+import { SearchFieldComponent } from '../../shared/components/search-field/search-field.component';
 
 // --- Accounts ---
 @Component({
   selector: 'app-account-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, MoneyPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, MoneyPipe, PaginationComponent, ReactiveFormsModule, SearchFieldComponent],
   providers: [LocalizedFieldPipe],
   template: `
     <div class="page">
@@ -44,6 +46,9 @@ import { ConfirmService } from '../../core/services/confirm.service';
         <a routerLink="/admin/accounts/create" class="btn-primary">{{ 'ACCOUNTS.ADD' | translate }}</a>
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
+      </div>
       <div class="panel">
         @if (loading()) { <p>{{ 'COMMON.LOADING' | translate }}</p> }
         @else if (!items().length) { <p>{{ 'COMMON.NO_DATA' | translate }}</p> }
@@ -92,6 +97,8 @@ export class AccountListComponent implements OnInit {
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
   private readonly localized = inject(LocalizedFieldPipe);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<CorrespondentAccount[]>([]);
@@ -99,8 +106,12 @@ export class AccountListComponent implements OnInit {
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
+  readonly searchControl = this.fb.nonNullable.control('');
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => this.applySearch(), this.searchControl);
+    this.load();
+  }
 
   currencySymbol(item: CorrespondentAccount): string {
     const currency = this.currencies().find((c) => c.currencyId === item.currencyId);
@@ -118,6 +129,11 @@ export class AccountListComponent implements OnInit {
     this.load();
   }
 
+  applySearch(): void {
+    this.currentPage.set(1);
+    this.load();
+  }
+
   async confirmDelete(item: CorrespondentAccount): Promise<void> {
     if (!(await this.confirm.confirmDelete())) return;
     this.api.delete(item.correspondentAccountId).subscribe({
@@ -129,7 +145,12 @@ export class AccountListComponent implements OnInit {
   private load(): void {
     this.loading.set(true);
     this.error.set('');
-    this.api.getPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+    this.api.getPaged({
+      activeOnly: false,
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
+      search: this.searchControl.value.trim() || undefined,
+    }).subscribe({
       next: (data) => {
         this.items.set(data.items ?? []);
         this.totalCount.set(data.totalCount ?? 0);
@@ -366,7 +387,7 @@ export class AccountFormComponent implements OnInit {
 @Component({
   selector: 'app-beneficiary-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent, ReactiveFormsModule, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -374,6 +395,9 @@ export class AccountFormComponent implements OnInit {
         <a routerLink="/admin/beneficiaries/create" class="btn-primary">{{ 'BENEFICIARIES.ADD' | translate }}</a>
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
+      </div>
       <div class="panel">
         @if (loading()) { <p>{{ 'COMMON.LOADING' | translate }}</p> }
         @else if (!items().length) { <p>{{ 'COMMON.NO_DATA' | translate }}</p> }
@@ -416,13 +440,19 @@ export class BeneficiaryListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<Beneficiary[]>([]);
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
-  ngOnInit(): void { this.load(); }
+  readonly searchControl = this.fb.nonNullable.control('');
+  ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => { this.currentPage.set(1); this.load(); }, this.searchControl);
+    this.load();
+  }
   goToPage(page: number): void { this.currentPage.set(page); this.load(); }
   changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
   async confirmDelete(item: Beneficiary): Promise<void> {
@@ -434,7 +464,12 @@ export class BeneficiaryListComponent implements OnInit {
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+    this.api.getPaged({
+      activeOnly: false,
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
+      search: this.searchControl.value.trim() || undefined,
+    }).subscribe({
       next: (d) => {
         this.items.set(d.items ?? []);
         this.totalCount.set(d.totalCount ?? 0);
@@ -522,7 +557,7 @@ export class BeneficiaryFormComponent implements OnInit {
 @Component({
   selector: 'app-currency-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, PaginationComponent, ReactiveFormsModule, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -530,6 +565,9 @@ export class BeneficiaryFormComponent implements OnInit {
         <a routerLink="/admin/currencies/create" class="btn-primary">{{ 'CURRENCIES.ADD' | translate }}</a>
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
+      </div>
       <div class="panel">
         @if (loading()) { <p>{{ 'COMMON.LOADING' | translate }}</p> }
         @else if (!items().length) { <p>{{ 'COMMON.NO_DATA' | translate }}</p> }
@@ -572,13 +610,19 @@ export class CurrencyListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<Currency[]>([]);
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
-  ngOnInit(): void { this.load(); }
+  readonly searchControl = this.fb.nonNullable.control('');
+  ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => { this.currentPage.set(1); this.load(); }, this.searchControl);
+    this.load();
+  }
   goToPage(page: number): void { this.currentPage.set(page); this.load(); }
   changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
   async confirmDelete(item: Currency): Promise<void> {
@@ -590,7 +634,11 @@ export class CurrencyListComponent implements OnInit {
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getPaged({ page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+    this.api.getPaged({
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
+      search: this.searchControl.value.trim() || undefined,
+    }).subscribe({
       next: (d) => {
         this.items.set(d.items ?? []);
         this.totalCount.set(d.totalCount ?? 0);
@@ -667,7 +715,7 @@ export class CurrencyFormComponent implements OnInit {
 @Component({
   selector: 'app-resource-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent, ReactiveFormsModule, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -675,6 +723,9 @@ export class CurrencyFormComponent implements OnInit {
         <a routerLink="/admin/resources/create" class="btn-primary">{{ 'RESOURCES.ADD' | translate }}</a>
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
+      </div>
       <div class="panel">
         @if (loading()) { <p>{{ 'COMMON.LOADING' | translate }}</p> }
         @else if (!items().length) { <p>{{ 'COMMON.NO_DATA' | translate }}</p> }
@@ -718,13 +769,19 @@ export class ResourceListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly translate = inject(TranslateService);
   private readonly confirm = inject(ConfirmService);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<ResourceType[]>([]);
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
-  ngOnInit(): void { this.load(); }
+  readonly searchControl = this.fb.nonNullable.control('');
+  ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => { this.currentPage.set(1); this.load(); }, this.searchControl);
+    this.load();
+  }
   goToPage(page: number): void { this.currentPage.set(page); this.load(); }
   changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
   async confirmDelete(item: ResourceType): Promise<void> {
@@ -736,7 +793,12 @@ export class ResourceListComponent implements OnInit {
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getTypesPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+    this.api.getTypesPaged({
+      activeOnly: false,
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
+      search: this.searchControl.value.trim() || undefined,
+    }).subscribe({
       next: (d) => {
         this.items.set(d.items ?? []);
         this.totalCount.set(d.totalCount ?? 0);
@@ -826,7 +888,7 @@ export class ResourceFormComponent implements OnInit {
 @Component({
   selector: 'app-obligation-type-list',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent],
+  imports: [RouterLink, TranslatePipe, LocalizedFieldPipe, PaginationComponent, ReactiveFormsModule, SearchFieldComponent],
   template: `
     <div class="page">
       <div class="page-toolbar">
@@ -834,6 +896,9 @@ export class ResourceFormComponent implements OnInit {
         <a routerLink="/admin/obligation-types/create" class="btn-primary">{{ 'OBLIGATION_TYPES.ADD' | translate }}</a>
       </div>
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
+      <div class="search-row">
+        <app-search-field [formControl]="searchControl" [placeholder]="'COMMON.SEARCH' | translate" />
+      </div>
       <div class="panel">
         @if (loading()) { <p>{{ 'COMMON.LOADING' | translate }}</p> }
         @else if (!items().length) { <p>{{ 'COMMON.NO_DATA' | translate }}</p> }
@@ -880,13 +945,19 @@ export class ObligationTypeListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly translate = inject(TranslateService);
   private readonly confirm = inject(ConfirmService);
+  private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly items = signal<ObligationType[]>([]);
   readonly currentPage = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
-  ngOnInit(): void { this.load(); }
+  readonly searchControl = this.fb.nonNullable.control('');
+  ngOnInit(): void {
+    bindLiveFilter(this.destroyRef, () => { this.currentPage.set(1); this.load(); }, this.searchControl);
+    this.load();
+  }
   goToPage(page: number): void { this.currentPage.set(page); this.load(); }
   changePageSize(size: number): void { this.pageSize.set(size); this.currentPage.set(1); this.load(); }
   async confirmDelete(item: ObligationType): Promise<void> {
@@ -898,7 +969,12 @@ export class ObligationTypeListComponent implements OnInit {
   }
   private load(): void {
     this.loading.set(true);
-    this.api.getTypesPaged({ activeOnly: false, page: this.currentPage(), pageSize: this.pageSize() }).subscribe({
+    this.api.getTypesPaged({
+      activeOnly: false,
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
+      search: this.searchControl.value.trim() || undefined,
+    }).subscribe({
       next: (d) => {
         this.items.set(d.items ?? []);
         this.totalCount.set(d.totalCount ?? 0);

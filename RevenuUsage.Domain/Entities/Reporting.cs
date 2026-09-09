@@ -8,6 +8,9 @@ public sealed class DashboardSummary
     public decimal TotalAccountBalance { get; set; }
     public decimal NetPositionUsd { get; set; }
     public decimal OutstandingObligationsUsd { get; set; }
+    public decimal CashInHandUsd { get; set; }
+    public decimal GoldValueUsd { get; set; }
+    public decimal DepositsUsd { get; set; }
     public decimal ReserveTotalUsd { get; set; }
 
     /// <summary>
@@ -27,6 +30,18 @@ public sealed class DashboardSummary
     public int BeneficiaryCount { get; set; }
     public int ResourceTypeCount { get; set; }
     public int ObligationCount { get; set; }
+    public IReadOnlyList<DashboardCurrencyBalance> CurrencyBalances { get; set; } = [];
+}
+
+public sealed class DashboardCurrencyBalance
+{
+    public Guid CurrencyId { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public string CurrencyNameEn { get; set; } = string.Empty;
+    public string? CurrencyNameAr { get; set; }
+    public string? CurrencySymbol { get; set; }
+    public decimal Balance { get; set; }
+    public decimal BalanceUsd { get; set; }
 }
 
 public sealed class ForeignReserveReportRow{public DateTime ReportDate{get;set;}public decimal CorrespondentBalancesUsd{get;set;}public decimal CashInHandUsd{get;set;}public decimal GoldValueUsd{get;set;}public decimal DepositsUsd{get;set;}public decimal ResourcesUsd{get;set;}public decimal UsagesUsd{get;set;}public decimal GrandTotalUsd{get;set;}}
