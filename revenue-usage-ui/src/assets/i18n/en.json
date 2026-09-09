@@ -215,6 +215,7 @@
     "PAID": "Paid",
     "REMAINING": "Remaining",
     "DUE_DATE": "Due Date",
+    "OPEN": "Open obligations",
     "OPEN_ONLY": "Open only",
     "STATEMENT": "Obligation Statement",
     "PAYMENTS": "Payments",

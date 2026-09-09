@@ -266,13 +266,13 @@ export class DealListComponent implements OnInit {
           }
         </label>
 
-        <label class="full-width">
+        <label>
           {{ 'DEALS.TO_AMOUNT' | translate }}
           <input [value]="convertedAmount()" readonly />
           <span class="hint">{{ 'DEALS.TO_AMOUNT_HINT' | translate }}</span>
         </label>
 
-        <label>
+        <label class="full-width">
           {{ 'TRANSFERS.REFERENCE' | translate }}
           <input formControlName="referenceNo" maxlength="100" />
         </label>

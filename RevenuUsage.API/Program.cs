@@ -19,6 +19,27 @@ QuestPDF.Settings.License = LicenseType.Community;
 // script, a report should come out with some glyphs boxed rather than not at all.
 QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
 
+/*
+Validating a token needs the provider's signing keys, which are fetched from the
+authority over the network the first time they are needed and refreshed periodically.
+That call is the one piece of request handling that reaches outside this process, and
+when the authority is slow it fails with "A task was canceled." Left alone the handler
+rethrows, so a provider that is merely unreachable arrives as a 500 that reads like a
+fault in this API.
+*/
+static bool IsAuthorityUnreachable(Exception? exception)
+{
+    for (var current = exception; current is not null; current = current.InnerException)
+    {
+        if (current is OperationCanceledException or HttpRequestException or IOException)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 var jwtConfig = builder.Configuration.GetSection("Jwt");
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -27,6 +48,10 @@ builder.Services
         options.Authority = jwtConfig["Authority"];
         options.Audience = "ruts.api";
         options.RequireHttpsMetadata = true;
+
+        // A minute of waiting on an unresponsive authority holds the caller for a minute too.
+        options.BackchannelTimeout = TimeSpan.FromSeconds(15);
+
         options.TokenValidationParameters = new()
         {
             ValidateIssuer = true,
@@ -35,6 +60,45 @@ builder.Services
             ValidAudiences = jwtConfig.GetSection("Audiences").Get<string[]>(),
             ValidateLifetime = true,
             RoleClaimType = "role"
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                // A caller that hung up mid-authentication cancels this too. Let that
+                // rethrow: the middleware below recognises an abort for what it is.
+                if (context.HttpContext.RequestAborted.IsCancellationRequested
+                    || !IsAuthorityUnreachable(context.Exception))
+                {
+                    return Task.CompletedTask;
+                }
+
+                // NoResult stops the rethrow. 503 says the token was never judged, which
+                // is the truth: a 401 would tell the caller to sign in again for nothing.
+                context.NoResult();
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                context.Response.Headers.RetryAfter = "10";
+
+                context.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("Authentication")
+                    .LogWarning(context.Exception, "Could not reach the authority at {Authority} to validate a token.", jwtConfig["Authority"]);
+
+                return Task.CompletedTask;
+            },
+
+            // Without a principal the request is unauthenticated, and the default answer to
+            // that is a 401. Hold on to the 503 set above so the cause is not lost.
+            OnChallenge = context =>
+            {
+                if (context.Response.StatusCode == StatusCodes.Status503ServiceUnavailable)
+                {
+                    context.HandleResponse();
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -112,13 +176,20 @@ app.UseExceptionHandler(exceptionHandlerApp =>
     {
         var exception = context.Features.Get<IExceptionHandlerPathFeature>()?.Error;
 
-        // Navigating away or logging out aborts in-flight requests. SqlClient surfaces that
-        // either as OperationCanceledException or as a SqlException with number 0, and the
-        // socket is already gone, so there is nobody left to write a response body to.
-        if (context.RequestAborted.IsCancellationRequested
-            && exception is OperationCanceledException or SqlException { Number: 0 })
+        // SqlClient reports a cancelled command as a SqlException with number 0 rather than
+        // as a cancellation, so it does not reach the middleware below.
+        if (context.RequestAborted.IsCancellationRequested && exception is SqlException { Number: 0 })
         {
             context.Response.StatusCode = 499; // Client Closed Request
+            return;
+        }
+
+        // A cancellation with the caller still connected is not the caller giving up: it is
+        // something here running out of time, which is a gateway timeout rather than a fault.
+        if (exception is OperationCanceledException)
+        {
+            context.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
+            await context.Response.WriteAsJsonAsync(new { status = "Error", message = "The request took too long and was stopped." });
             return;
         }
 
@@ -155,6 +226,28 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 
         await context.Response.WriteAsJsonAsync(response);
     });
+});
+
+/*
+Logging out or navigating away aborts whatever requests were in flight, and every
+repository passes the request's token down to Dapper, so the abort surfaces as a
+TaskCanceledException. It is the expected outcome of a caller hanging up, not a fault,
+so it is caught here, inside the exception handler above: letting it travel any further
+would log it at error level and answer a socket that has already gone.
+*/
+app.Use(async (HttpContext context, RequestDelegate next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+    {
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = 499; // Client Closed Request
+        }
+    }
 });
 
 app.UseHttpsRedirection();

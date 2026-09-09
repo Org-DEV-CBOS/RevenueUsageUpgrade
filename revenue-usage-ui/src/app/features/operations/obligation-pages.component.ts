@@ -24,7 +24,6 @@ import { MoneyPipe } from '../../shared/pipes/money.pipe';
   imports: [
     RouterLink,
     DatePipe,
-    ReactiveFormsModule,
     TranslatePipe,
     MoneyPipe,
     LocalizedFieldPipe,
@@ -33,14 +32,30 @@ import { MoneyPipe } from '../../shared/pipes/money.pipe';
   template: `
     <div class="page">
       <div class="page-toolbar">
-        <h1>{{ 'NAV.OBLIGATIONS' | translate }}</h1>
-        <div class="toolbar-actions">
-          <label class="inline-filter">
-            <input type="checkbox" [formControl]="activeOnlyControl" />
-            {{ 'OBLIGATIONS.OPEN_ONLY' | translate }}
-          </label>
-          <a routerLink="/app/obligations/create" class="btn-primary">{{ 'OBLIGATIONS.ADD' | translate }}</a>
+        <div class="page-heading">
+          <h1>{{ 'NAV.OBLIGATIONS' | translate }}</h1>
+          <div class="view-toggle" role="radiogroup" [attr.aria-label]="'NAV.OBLIGATIONS' | translate">
+            <button
+              type="button"
+              role="radio"
+              [attr.aria-checked]="openOnly()"
+              [class.active]="openOnly()"
+              (click)="setOpenOnly(true)"
+            >
+              {{ 'OBLIGATIONS.OPEN' | translate }}
+            </button>
+            <button
+              type="button"
+              role="radio"
+              [attr.aria-checked]="!openOnly()"
+              [class.active]="!openOnly()"
+              (click)="setOpenOnly(false)"
+            >
+              {{ 'COMMON.ALL' | translate }}
+            </button>
+          </div>
         </div>
+        <a routerLink="/app/obligations/create" class="btn-primary">{{ 'OBLIGATIONS.ADD' | translate }}</a>
       </div>
 
       @if (error()) { <div class="error-banner">{{ error() }}</div> }
@@ -112,7 +127,6 @@ export class ObligationListComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly translate = inject(TranslateService);
-  private readonly fb = inject(FormBuilder);
 
   readonly loading = signal(false);
   readonly error = signal('');
@@ -120,14 +134,19 @@ export class ObligationListComponent implements OnInit {
   readonly page = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
-
-  readonly activeOnlyControl = this.fb.nonNullable.control(false);
+  readonly openOnly = signal(false);
 
   ngOnInit(): void {
-    this.activeOnlyControl.valueChanges.subscribe(() => {
-      this.page.set(1);
-      this.load();
-    });
+    this.load();
+  }
+
+  setOpenOnly(open: boolean): void {
+    if (this.openOnly() === open) {
+      return;
+    }
+
+    this.openOnly.set(open);
+    this.page.set(1);
     this.load();
   }
 
@@ -160,7 +179,7 @@ export class ObligationListComponent implements OnInit {
       .getPaged({
         page: this.page(),
         pageSize: this.pageSize(),
-        activeOnly: this.activeOnlyControl.value,
+        activeOnly: this.openOnly(),
       })
       .subscribe({
         next: (data) => {
@@ -443,51 +462,55 @@ export class ObligationFormComponent implements OnInit {
           </div>
         </div>
 
+        <!-- Wrapped in a panel so it reads as one more section of this page. A form-panel
+             directly under .page turns the whole page into a centred form column. -->
         @if (data.obligation.remainingAmount > 0) {
-          <form class="form-panel wide" [formGroup]="paymentForm" (ngSubmit)="pay()">
-            <h2 class="full-width">{{ 'OBLIGATIONS.ADD_PAYMENT' | translate }}</h2>
+          <div class="panel">
+            <h2>{{ 'OBLIGATIONS.ADD_PAYMENT' | translate }}</h2>
 
-            <label [class.invalid]="isInvalid('correspondentAccountId')">
-              {{ 'NAV.ACCOUNTS' | translate }} *
-              <app-search-select
-                formControlName="correspondentAccountId"
-                [options]="payableAccountOptions()"
-              />
-              <span class="hint">{{ 'OBLIGATIONS.SAME_CURRENCY_HINT' | translate }}</span>
-              @if (fieldError('correspondentAccountId'); as message) {
-                <span class="field-error">{{ message }}</span>
-              }
-            </label>
+            <form class="form-panel wide" [formGroup]="paymentForm" (ngSubmit)="pay()">
+              <label [class.invalid]="isInvalid('correspondentAccountId')">
+                {{ 'NAV.ACCOUNTS' | translate }} *
+                <app-search-select
+                  formControlName="correspondentAccountId"
+                  [options]="payableAccountOptions()"
+                />
+                <span class="hint">{{ 'OBLIGATIONS.SAME_CURRENCY_HINT' | translate }}</span>
+                @if (fieldError('correspondentAccountId'); as message) {
+                  <span class="field-error">{{ message }}</span>
+                }
+              </label>
 
-            <label [class.invalid]="isInvalid('amount')">
-              {{ 'TRANSFERS.AMOUNT' | translate }} *
-              <app-money-input formControlName="amount" />
-              @if (fieldError('amount'); as message) {
-                <span class="field-error">{{ message }}</span>
-              }
-            </label>
+              <label [class.invalid]="isInvalid('amount')">
+                {{ 'TRANSFERS.AMOUNT' | translate }} *
+                <app-money-input formControlName="amount" />
+                @if (fieldError('amount'); as message) {
+                  <span class="field-error">{{ message }}</span>
+                }
+              </label>
 
-            <label [class.invalid]="isInvalid('paymentDate')">
-              {{ 'TRANSFERS.DATE' | translate }} *
-              <input type="date" formControlName="paymentDate" />
-            </label>
+              <label [class.invalid]="isInvalid('paymentDate')">
+                {{ 'TRANSFERS.DATE' | translate }} *
+                <input type="date" formControlName="paymentDate" />
+              </label>
 
-            <label>
-              {{ 'TRANSFERS.REFERENCE' | translate }}
-              <input formControlName="referenceNo" maxlength="100" />
-            </label>
+              <label>
+                {{ 'TRANSFERS.REFERENCE' | translate }}
+                <input formControlName="referenceNo" maxlength="100" />
+              </label>
 
-            <label class="full-width">
-              {{ 'RESOURCES.NOTES' | translate }}
-              <input formControlName="notes" maxlength="500" />
-            </label>
+              <label class="full-width">
+                {{ 'RESOURCES.NOTES' | translate }}
+                <input formControlName="notes" maxlength="500" />
+              </label>
 
-            <div class="form-actions">
-              <button type="submit" class="btn-primary" [disabled]="saving()">
-                {{ 'OBLIGATIONS.PAY' | translate }}
-              </button>
-            </div>
-          </form>
+              <div class="form-actions">
+                <button type="submit" class="btn-primary" [disabled]="saving()">
+                  {{ 'OBLIGATIONS.PAY' | translate }}
+                </button>
+              </div>
+            </form>
+          </div>
         }
 
         <div class="panel">
