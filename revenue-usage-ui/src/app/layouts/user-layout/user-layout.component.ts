@@ -67,11 +67,9 @@ export class UserLayoutComponent {
       route: 'reports',
       children: [
         { labelKey: 'NAV.BALANCES', icon: '', route: '/app/reports/balances' },
-        { labelKey: 'NAV.OBLIGATIONS', icon: '', route: '/app/reports/obligations' },
+        { labelKey: 'NAV.TOTAL_BALANCES', icon: '', route: '/app/reports/total-balances' },
+        { labelKey: 'REPORTS.CBOS_OBLIGATIONS', icon: '', route: '/app/reports/obligations' },
         { labelKey: 'NAV.FOREIGN_RESERVE', icon: '', route: '/app/reports/foreign-reserve' },
-        { labelKey: 'REPORTS.CREDIT_MOVEMENTS', icon: '', route: '/app/reports/credit-movements' },
-        { labelKey: 'REPORTS.DEBIT_MOVEMENTS', icon: '', route: '/app/reports/debit-movements' },
-        { labelKey: 'REPORTS.RESOURCES_SUMMARY', icon: '', route: '/app/reports/resources' },
       ],
     },
   ];

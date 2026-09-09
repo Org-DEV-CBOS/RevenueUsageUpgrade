@@ -397,9 +397,40 @@ textarea {
   font-weight: 700;
 }
 
-.data-table td.money {
+.data-table td.money,
+.data-table th.money {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.data-table th.money {
+  text-align: end;
+}
+
+.data-table tfoot th,
+.data-table tfoot td {
+  background: #f4f8fc;
+  font-weight: 700;
+  color: var(--blue-bg);
+}
+
+.data-table tfoot th {
+  text-align: start;
+}
+
+/* Reports centre every column, the way the printed ones always have. */
+.data-table.report-table th,
+.data-table.report-table th.money,
+.data-table.report-table td,
+.data-table.report-table tfoot th,
+.data-table.report-table tfoot td {
+  text-align: center;
+}
+
+/* The figures printed under a balance matrix: USD equivalent, pending, and the net. */
+.report-summary {
+  margin-top: 1rem;
+  max-width: 340px;
 }
 
 .data-table tr.statement-opening td,

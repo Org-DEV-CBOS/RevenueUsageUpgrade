@@ -28,6 +28,8 @@ export interface PagedResponse<T> {
   pageNumber?: number;
   pageSize: number;
   totalPages: number;
+  /** Figures over the whole result set, for reports that foot a column. */
+  totals?: Record<string, number>;
 }
 
 export interface DeleteMasterDataRequest {
@@ -295,9 +297,31 @@ export interface FinalBankPosition {
   bankNetPositionUsd: number;
 }
 
-export interface MovementReportRow {
-  groupName: string;
-  totalAmount: number;
+/** One correspondent's row of a balance report, aligned to the report's currencies. */
+export interface CorrespondentBalanceRow {
+  correspondentName: string;
+  correspondentNameAr?: string;
+  /** Null where the correspondent holds nothing in that currency. */
+  balances: (number | null)[];
+}
+
+/**
+ * A whole balance report rather than a page of one: the totals underneath only mean
+ * anything over the full set.
+ */
+export interface CorrespondentBalanceReport {
+  generatedAt: string;
+  asOfDate: string;
+  /** Column headings. A single `USD` entry when the report is in USD totals mode. */
+  currencies: string[];
+  rows: CorrespondentBalanceRow[];
+  currencyTotals: (number | null)[];
+  currencyTotalsUsd: (number | null)[];
+  equivalentUsd: number;
+  pendingUsd: number;
+  netBalanceUsd: number;
+  /** Non-zero means currencies without a published rate are missing from the USD figures. */
+  unconvertedCurrencyCount: number;
 }
 
 export interface ExchangeRateRow {

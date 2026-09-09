@@ -34,31 +34,21 @@ public sealed class ReportingRepository : IReportingRepository
             new CommandDefinition("dbo.uspGetObligationReport", new { StartDate = f, EndDate = t, Status = s, ClientTypeId = clientTypeId }, commandType: CommandType.StoredProcedure, cancellationToken: ct));
     }
 
-    public async Task<IEnumerable<MovementReportRow>> GetCreditMovementsAsync(DateTime from, DateTime to, string? searchValue, CancellationToken ct = default)
+    public async Task<(IReadOnlyList<CorrespondentCurrencyBalance> Balances, PendingTransferTotal Pending)> GetCorrespondentBalancesAsync(
+        DateTime? asOfDate,
+        string? searchValue,
+        CancellationToken ct = default)
     {
         await using var db = new SqlConnection(_cs);
-        return await db.QueryAsync<MovementReportRow>(
-            new CommandDefinition("dbo.uspGetCreditMovements", new { StartDate = from, EndDate = to, SearchValue = searchValue }, commandType: CommandType.StoredProcedure, cancellationToken: ct));
-    }
+        await using var reader = await db.QueryMultipleAsync(new CommandDefinition(
+            "dbo.uspGetCorrespondentBalanceMatrix",
+            new { AsOfDate = asOfDate, SearchValue = searchValue },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: ct));
 
-    public async Task<IEnumerable<MovementReportRow>> GetDebitMovementsAsync(DateTime from, DateTime to, string? searchValue, CancellationToken ct = default)
-    {
-        await using var db = new SqlConnection(_cs);
-        return await db.QueryAsync<MovementReportRow>(
-            new CommandDefinition("dbo.uspGetDebitMovements", new { StartDate = from, EndDate = to, SearchValue = searchValue }, commandType: CommandType.StoredProcedure, cancellationToken: ct));
-    }
+        var balances = (await reader.ReadAsync<CorrespondentCurrencyBalance>()).ToList();
+        var pending = await reader.ReadFirstOrDefaultAsync<PendingTransferTotal>() ?? new PendingTransferTotal();
 
-    public async Task<IEnumerable<ResourceSummaryReportRow>> GetResourcesReportAsync(DateTime? from, DateTime? to, CancellationToken ct = default)
-    {
-        await using var db = new SqlConnection(_cs);
-        return await db.QueryAsync<ResourceSummaryReportRow>(
-            new CommandDefinition("dbo.uspGetResourcesReport", new { StartDate = from, EndDate = to }, commandType: CommandType.StoredProcedure, cancellationToken: ct));
-    }
-
-    public async Task<IEnumerable<CorrespondentBalanceReportRow>> GetCorrespondentBalanceReportAsync(string? searchValue, CancellationToken ct = default)
-    {
-        await using var db = new SqlConnection(_cs);
-        return await db.QueryAsync<CorrespondentBalanceReportRow>(
-            new CommandDefinition("dbo.uspGetCorrespondentBalanceReport", new { SearchValue = searchValue }, commandType: CommandType.StoredProcedure, cancellationToken: ct));
+        return (balances, pending);
     }
 }

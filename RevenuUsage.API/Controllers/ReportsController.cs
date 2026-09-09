@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RevenuUsage.API.Exports;
 using RevenuUsage.Application.Common;
+using RevenuUsage.Application.DTOs;
 using RevenuUsage.Application.Features.Reporting;
 using RevenuUsage.Domain.Entities;
 
@@ -13,6 +14,9 @@ namespace RevenuUsage.API.Controllers;
 [Route("api/[controller]")]
 public sealed class ReportsController : ControllerBase
 {
+    private const string BalancesTitle = "Correspondent's Balances";
+    private const string ExcelContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     private readonly IMediator _mediator;
 
     public ReportsController(IMediator mediator)
@@ -52,65 +56,26 @@ public sealed class ReportsController : ControllerBase
         CancellationToken ct = default)
     {
         var rows = await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientTypeId), ct);
-        return Ok(Paging.Create(rows, page, pageSize, pageNumber));
+        return Ok(Paging.Create(rows, page, pageSize, pageNumber, ObligationTotals));
     }
 
-    [HttpGet("credit-movements")]
-    public async Task<ActionResult> CreditMovements(
-        DateTime startDate,
-        DateTime endDate,
-        string? searchValue,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 25,
-        [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(
-            await _mediator.Send(new GetCreditMovementsReportQuery(startDate, endDate, searchValue), ct),
-            page,
-            pageSize,
-            pageNumber));
-
-    [HttpGet("debit-movements")]
-    public async Task<ActionResult> DebitMovements(
-        DateTime startDate,
-        DateTime endDate,
-        string? searchValue,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 25,
-        [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(
-            await _mediator.Send(new GetDebitMovementsReportQuery(startDate, endDate, searchValue), ct),
-            page,
-            pageSize,
-            pageNumber));
-
-    [HttpGet("resources")]
-    public async Task<ActionResult> Resources(
-        DateTime? startDate,
-        DateTime? endDate,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 25,
-        [FromQuery] int pageNumber = 0,
-        CancellationToken ct = default) =>
-        Ok(Paging.Create(
-            await _mediator.Send(new GetResourcesReportQuery(startDate, endDate), ct),
-            page,
-            pageSize,
-            pageNumber));
-
+    /// <summary>A currency column per holding, with per-currency totals and a USD summary.</summary>
     [HttpGet("correspondent-balances")]
-    public async Task<ActionResult> CorrespondentBalances(
+    [ProducesResponseType(typeof(CorrespondentBalanceReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CorrespondentBalanceReportDto>> CorrespondentBalances(
+        DateTime? asOfDate,
         string? searchValue,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 25,
-        [FromQuery] int pageNumber = 0,
         CancellationToken ct = default) =>
-        Ok(Paging.Create(
-            await _mediator.Send(new GetCorrespondentBalanceReportQuery(searchValue), ct),
-            page,
-            pageSize,
-            pageNumber));
+        Ok(await _mediator.Send(new GetCorrespondentBalanceReportQuery(asOfDate, searchValue), ct));
+
+    /// <summary>One row per correspondent, every currency they hold converted to USD.</summary>
+    [HttpGet("correspondent-total-balances")]
+    [ProducesResponseType(typeof(CorrespondentBalanceReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CorrespondentBalanceReportDto>> CorrespondentTotalBalances(
+        DateTime? asOfDate,
+        string? searchValue,
+        CancellationToken ct = default) =>
+        Ok(await _mediator.Send(new GetCorrespondentBalanceReportQuery(asOfDate, searchValue, InUsd: true), ct));
 
     [HttpGet("foreign-reserve/export")]
     public async Task<IActionResult> ExportForeignReserve(
@@ -120,19 +85,10 @@ public sealed class ReportsController : ControllerBase
         CancellationToken ct = default)
     {
         var rows = (await _mediator.Send(new GetForeignReserveReportQuery(startDate, endDate), ct)).ToList();
-        var now = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
 
-        if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
-        {
-            var pdf = ReportExportBuilder.BuildForeignReservePdf(rows);
-            return File(pdf, "application/pdf", $"foreign-reserve-{now}.pdf");
-        }
-
-        var excel = ReportExportBuilder.BuildForeignReserveExcel(rows);
-        return File(
-            excel,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"foreign-reserve-{now}.xlsx");
+        return IsPdf(format)
+            ? Pdf(ReportExportBuilder.BuildForeignReservePdf(rows), "foreign-reserve")
+            : Excel(ReportExportBuilder.BuildForeignReserveExcel(rows), "foreign-reserve");
     }
 
     [HttpGet("obligations/export")]
@@ -142,96 +98,65 @@ public sealed class ReportsController : ControllerBase
         string? status,
         Guid? clientTypeId,
         [FromQuery] string format = "xlsx",
+        [FromQuery] string lang = "en",
         CancellationToken ct = default)
     {
         var rows = (await _mediator.Send(new GetObligationReportQuery(startDate, endDate, status, clientTypeId), ct)).ToList();
-        var now = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var arabic = IsArabic(lang);
 
-        if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
-        {
-            var pdf = ReportExportBuilder.BuildObligationPdf(rows);
-            return File(pdf, "application/pdf", $"obligations-{now}.pdf");
-        }
-
-        var excel = ReportExportBuilder.BuildObligationExcel(rows);
-        return File(
-            excel,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"obligations-{now}.xlsx");
-    }
-
-    [HttpGet("credit-movements/export")]
-    public async Task<IActionResult> ExportCreditMovements(
-        DateTime startDate,
-        DateTime endDate,
-        string? searchValue,
-        [FromQuery] string format = "xlsx",
-        CancellationToken ct = default)
-    {
-        var rows = (await _mediator.Send(new GetCreditMovementsReportQuery(startDate, endDate, searchValue), ct)).ToList();
-        return MovementFile(rows, "Credit Movements", "Resource Type", "credit-movements", format);
-    }
-
-    [HttpGet("debit-movements/export")]
-    public async Task<IActionResult> ExportDebitMovements(
-        DateTime startDate,
-        DateTime endDate,
-        string? searchValue,
-        [FromQuery] string format = "xlsx",
-        CancellationToken ct = default)
-    {
-        var rows = (await _mediator.Send(new GetDebitMovementsReportQuery(startDate, endDate, searchValue), ct)).ToList();
-        return MovementFile(rows, "Debit Movements", "Beneficiary", "debit-movements", format);
-    }
-
-    [HttpGet("resources/export")]
-    public async Task<IActionResult> ExportResources(
-        DateTime? startDate,
-        DateTime? endDate,
-        [FromQuery] string format = "xlsx",
-        CancellationToken ct = default)
-    {
-        var rows = (await _mediator.Send(new GetResourcesReportQuery(startDate, endDate), ct)).ToList();
-        var now = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-
-        if (IsPdf(format))
-            return File(ReportExportBuilder.BuildResourcesPdf(rows), "application/pdf", $"resources-{now}.pdf");
-
-        return ExcelFile(ReportExportBuilder.BuildResourcesExcel(rows), $"resources-{now}.xlsx");
+        return IsPdf(format)
+            ? Pdf(ReportExportBuilder.BuildObligationPdf(rows, arabic), "obligations")
+            : Excel(ReportExportBuilder.BuildObligationExcel(rows, arabic), "obligations");
     }
 
     [HttpGet("correspondent-balances/export")]
     public async Task<IActionResult> ExportCorrespondentBalances(
+        DateTime? asOfDate,
         string? searchValue,
         [FromQuery] string format = "xlsx",
         CancellationToken ct = default)
     {
-        var rows = (await _mediator.Send(new GetCorrespondentBalanceReportQuery(searchValue), ct)).ToList();
-        var now = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var report = await _mediator.Send(new GetCorrespondentBalanceReportQuery(asOfDate, searchValue), ct);
 
-        if (IsPdf(format))
-            return File(ReportExportBuilder.BuildCorrespondentBalancePdf(rows), "application/pdf", $"correspondent-balances-{now}.pdf");
-
-        return ExcelFile(ReportExportBuilder.BuildCorrespondentBalanceExcel(rows), $"correspondent-balances-{now}.xlsx");
+        return IsPdf(format)
+            ? Pdf(ReportExportBuilder.BuildCorrespondentBalancePdf(report, BalancesTitle), "correspondent-balances")
+            : Excel(ReportExportBuilder.BuildCorrespondentBalanceExcel(report), "correspondent-balances");
     }
 
-    private IActionResult MovementFile(
-        IReadOnlyList<MovementReportRow> rows,
-        string title,
-        string groupHeader,
-        string fileNamePrefix,
-        string format)
+    [HttpGet("correspondent-total-balances/export")]
+    public async Task<IActionResult> ExportCorrespondentTotalBalances(
+        DateTime? asOfDate,
+        string? searchValue,
+        [FromQuery] string format = "xlsx",
+        CancellationToken ct = default)
     {
-        var now = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var report = await _mediator.Send(new GetCorrespondentBalanceReportQuery(asOfDate, searchValue, InUsd: true), ct);
 
-        if (IsPdf(format))
-            return File(ReportExportBuilder.BuildMovementPdf(rows, title, groupHeader), "application/pdf", $"{fileNamePrefix}-{now}.pdf");
-
-        return ExcelFile(ReportExportBuilder.BuildMovementExcel(rows, title, groupHeader), $"{fileNamePrefix}-{now}.xlsx");
+        return IsPdf(format)
+            ? Pdf(ReportExportBuilder.BuildCorrespondentBalancePdf(report, BalancesTitle), "correspondent-total-balances")
+            : Excel(ReportExportBuilder.BuildCorrespondentBalanceExcel(report), "correspondent-total-balances");
     }
 
-    private FileContentResult ExcelFile(byte[] content, string fileName) =>
-        File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    /// <summary>
+    /// Footed over every obligation the filters match, not just the page on screen.
+    /// Obligations with no published USD rate are left out; the report says so.
+    /// </summary>
+    private static IReadOnlyDictionary<string, decimal> ObligationTotals(IReadOnlyList<ObligationReportRow> rows) =>
+        new Dictionary<string, decimal>
+        {
+            ["remainingAmountUsd"] = rows.Where(row => row.RemainingAmountUsd.HasValue).Sum(row => row.RemainingAmountUsd!.Value)
+        };
+
+    private FileContentResult Pdf(byte[] content, string namePrefix) =>
+        File(content, "application/pdf", FileName(namePrefix, "pdf"));
+
+    private FileContentResult Excel(byte[] content, string namePrefix) =>
+        File(content, ExcelContentType, FileName(namePrefix, "xlsx"));
+
+    private static string FileName(string prefix, string extension) =>
+        $"{prefix}-{DateTime.UtcNow:yyyyMMdd_HHmmss}.{extension}";
 
     private static bool IsPdf(string format) => format.Equals("pdf", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsArabic(string lang) => lang.StartsWith("ar", StringComparison.OrdinalIgnoreCase);
 }

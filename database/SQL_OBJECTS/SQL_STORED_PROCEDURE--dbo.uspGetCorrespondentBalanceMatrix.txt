@@ -1,0 +1,146 @@
+CREATE OR ALTER PROCEDURE dbo.uspGetCorrespondentBalanceMatrix
+    @AsOfDate date = NULL,
+    @SearchValue nvarchar(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    /*
+    Feeds both correspondent balance reports. It returns balances in long form, one row
+    per correspondent and currency, and leaves the caller to pivot currencies into
+    columns or collapse them into a single USD total. Doing it that way keeps the column
+    set out of the query, which a dynamic PIVOT would otherwise have to build as text.
+
+    @AsOfDate rewinds the whole report, not just the conversion. Balances are rebuilt
+    from each account's opening balance plus the movements booked up to that date, the
+    same way dbo.uspGetCorrespondentAccountStatement arrives at its running balance, so
+    the two reconcile. The stored CurrentBalance is deliberately not used: it only ever
+    describes today.
+
+    RateToUsd comes back alongside each balance rather than folded into it so the caller
+    can tell a genuine zero from a currency that has no published rate, and report that
+    instead of silently understating the total.
+    */
+
+    DECLARE @asOf date = COALESCE(@AsOfDate, CAST(GETUTCDATE() AS date));
+
+    -- Exclusive upper bound, so movements booked on the as-of date itself are included.
+    DECLARE @asOfEnd datetime2 = DATEADD(day, 1, CAST(@asOf AS datetime2));
+
+    DECLARE @rates TABLE (
+        CurrencyId uniqueidentifier PRIMARY KEY,
+        RateToUsd decimal(19, 8) NULL
+    );
+
+    INSERT INTO @rates (CurrencyId, RateToUsd)
+    SELECT CurrencyId, RateToUsd
+    FROM dbo.ufnUsdRates(@asOf);
+
+    WITH movements AS (
+        SELECT CorrespondentAccountId, Amount AS Delta
+        FROM dbo.Resources
+        WHERE DeletedTime IS NULL AND ResourceDate < @asOfEnd
+
+        UNION ALL
+        SELECT CorrespondentAccountId, -Amount
+        FROM dbo.Transfers
+        WHERE DeletedTime IS NULL AND TransferStatus = 'Confirmed' AND TransferDate < @asOfEnd
+
+        UNION ALL
+        SELECT ToCorrespondentAccountId, Amount
+        FROM dbo.Coverages
+        WHERE DeletedTime IS NULL AND TransactionDate < @asOfEnd
+
+        UNION ALL
+        SELECT FromCorrespondentAccountId, -Amount
+        FROM dbo.Coverages
+        WHERE DeletedTime IS NULL AND TransactionDate < @asOfEnd
+
+        UNION ALL
+        SELECT ToCorrespondentAccountId, ToAmount
+        FROM dbo.Deals
+        WHERE DeletedTime IS NULL AND TransactionDate < @asOfEnd
+
+        UNION ALL
+        SELECT FromCorrespondentAccountId, -FromAmount
+        FROM dbo.Deals
+        WHERE DeletedTime IS NULL AND TransactionDate < @asOfEnd
+
+        UNION ALL
+        SELECT CorrespondentAccountId, -Amount
+        FROM dbo.ObligationPayments
+        WHERE DeletedTime IS NULL AND PaymentDate < @asOfEnd
+    ),
+    netByAccount AS (
+        SELECT CorrespondentAccountId, SUM(Delta) AS Net
+        FROM movements
+        GROUP BY CorrespondentAccountId
+    ),
+    accountBalances AS (
+        SELECT
+            a.CorrespondentId,
+            a.CurrencyId,
+            COALESCE(a.OpeningBalance, 0) + COALESCE(n.Net, 0) AS Balance
+        FROM dbo.CorrespondentAccounts a
+        LEFT JOIN netByAccount n ON n.CorrespondentAccountId = a.CorrespondentAccountId
+        WHERE a.IsDeleted = 0
+    )
+    -- Result 1: one row per correspondent and currency, accounts of the same currency summed.
+    SELECT
+        c.CorrespondentId,
+        c.CorrespondentNameEn,
+        c.CorrespondentNameAr,
+        cur.CurrencyId,
+        cur.CurrencyCode,
+        cur.Symbol AS CurrencySymbol,
+        SUM(b.Balance) AS Balance,
+        r.RateToUsd,
+        CASE
+            WHEN r.RateToUsd IS NULL THEN NULL
+            ELSE SUM(b.Balance) * r.RateToUsd
+        END AS BalanceUsd
+    FROM accountBalances b
+    INNER JOIN dbo.Correspondents c ON c.CorrespondentId = b.CorrespondentId
+    INNER JOIN dbo.Currencies cur ON cur.CurrencyId = b.CurrencyId
+    LEFT JOIN @rates r ON r.CurrencyId = cur.CurrencyId
+    WHERE c.IsDeleted = 0
+      AND (
+            @SearchValue IS NULL
+            OR c.CorrespondentNameEn LIKE '%' + @SearchValue + '%'
+            OR c.CorrespondentNameAr LIKE '%' + @SearchValue + '%'
+            OR cur.Symbol LIKE '%' + @SearchValue + '%'
+          )
+    GROUP BY
+        c.CorrespondentId,
+        c.CorrespondentNameEn,
+        c.CorrespondentNameAr,
+        cur.CurrencyId,
+        cur.CurrencyCode,
+        cur.Symbol,
+        r.RateToUsd
+    ORDER BY c.CorrespondentNameEn, cur.Symbol;
+
+    /*
+    Result 2: the figures under the matrix. Pending transfers are debits that have been
+    raised but not confirmed, so they have not touched a balance yet. The report
+    subtracts them to show what is genuinely uncommitted. Only those booked up to the
+    as-of date count, though a transfer's status is necessarily its status now: nothing
+    records what it was on an earlier date.
+    */
+    SELECT
+        COALESCE(SUM(CASE WHEN r.RateToUsd IS NULL THEN 0 ELSE t.Amount * r.RateToUsd END), 0) AS PendingUsd
+    FROM dbo.Transfers t
+    INNER JOIN dbo.CorrespondentAccounts a ON a.CorrespondentAccountId = t.CorrespondentAccountId
+    INNER JOIN dbo.Correspondents c ON c.CorrespondentId = a.CorrespondentId
+    LEFT JOIN @rates r ON r.CurrencyId = a.CurrencyId
+    WHERE t.DeletedTime IS NULL
+      AND t.TransferStatus = 'Pending'
+      AND t.TransferDate < @asOfEnd
+      AND a.IsDeleted = 0
+      AND c.IsDeleted = 0
+      AND (
+            @SearchValue IS NULL
+            OR c.CorrespondentNameEn LIKE '%' + @SearchValue + '%'
+            OR c.CorrespondentNameAr LIKE '%' + @SearchValue + '%'
+          );
+END;

@@ -11,6 +11,7 @@ import { TransferListComponent } from './features/transfers/transfer-list.compon
 import { TransferFormComponent } from './features/transfers/transfer-form.component';
 import { API_PAGE_CONFIGS, ApiRoutePageComponent } from './features/api-pages/api-route-page.component';
 import { REPORT_CONFIGS, ReportPageComponent } from './features/reports/report-page.component';
+import { CorrespondentBalanceReportComponent } from './features/reports/correspondent-balance-report.component';
 import {
   ResourceEntryFormComponent,
   ResourceEntryListComponent,
@@ -118,12 +119,14 @@ export const routes: Routes = [
       { path: 'statements/currency', component: CurrencyStatementComponent },
       { path: 'statements/bank-position', component: BankPositionComponent },
 
-      reportRoute('reports/balances', 'correspondentBalances'),
+      { path: 'reports/balances', component: CorrespondentBalanceReportComponent },
+      {
+        path: 'reports/total-balances',
+        component: CorrespondentBalanceReportComponent,
+        data: { usdOnly: true },
+      },
       reportRoute('reports/obligations', 'obligations'),
       reportRoute('reports/foreign-reserve', 'foreignReserve'),
-      reportRoute('reports/credit-movements', 'creditMovements'),
-      reportRoute('reports/debit-movements', 'debitMovements'),
-      reportRoute('reports/resources', 'resources'),
 
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],

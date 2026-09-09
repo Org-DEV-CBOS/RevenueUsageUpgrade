@@ -85,7 +85,8 @@
     "DEALING": "التداول",
     "REPORTS": "التقارير",
     "STATEMENTS": "كشوفات الحساب",
-    "BALANCES": "الأرصدة",
+    "BALANCES": "أرصدة المراسلين",
+    "TOTAL_BALANCES": "إجمالي أرصدة المراسلين",
     "FOREIGN_RESERVE": "الاحتياطي الأجنبي",
     "COUNTRIES": "الدول",
     "BENEFICIARIES": "المستفيدون",
@@ -273,10 +274,19 @@
     "NET_POSITION": "صافي المركز"
   },
   "REPORTS": {
-    "CREDIT_MOVEMENTS": "الحركات الدائنة",
-    "DEBIT_MOVEMENTS": "الحركات المدينة",
-    "RESOURCES_SUMMARY": "ملخص الموارد",
-    "USAGES": "الاستخدامات"
+    "USAGES": "الاستخدامات",
+    "CBOS_OBLIGATIONS": "التزامات بنك السودان المركزي",
+    "CORRESPONDENT_NAME": "اسم المراسل",
+    "TOTAL": "الإجمالي",
+    "TOTAL_IN_USD": "الإجمالي بالدولار",
+    "EQUIVALENT_USD": "المعادل بالدولار",
+    "PENDING_USD": "المعلق بالدولار",
+    "NET_BALANCE": "صافي الرصيد",
+    "CCY": "العملة",
+    "TOTAL_AMOUNTS": "إجمالي المبالغ",
+    "PAID_AMOUNTS": "المبالغ المسددة",
+    "REMAINING_USD": "المتبقي بالدولار",
+    "UNCONVERTED_WARNING": "يوجد {{count}} عملة لها أرصدة بدون سعر صرف منشور مقابل الدولار وتم استثناؤها من المبالغ بالدولار."
   },
   "DASHBOARD": {
     "TITLE": "لوحة التحكم",

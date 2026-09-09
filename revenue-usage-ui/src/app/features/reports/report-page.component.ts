@@ -11,13 +11,7 @@ import { extractHttpError } from '../../core/utils/http-error.util';
 import { ExportButtonsComponent } from '../../shared/components/export-buttons/export-buttons.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 
-export type ReportEndpoint =
-  | 'foreign-reserve'
-  | 'obligations'
-  | 'credit-movements'
-  | 'debit-movements'
-  | 'resources'
-  | 'correspondent-balances';
+export type ReportEndpoint = 'foreign-reserve' | 'obligations';
 
 export interface ReportColumn {
   key: string;
@@ -35,6 +29,11 @@ export interface ReportConfig {
   dateRange: 'required' | 'optional' | 'none';
   search?: boolean;
   statusFilter?: boolean;
+  /**
+   * Columns to foot. The figures come from the API and cover every matching row, not
+   * just the page on screen.
+   */
+  footerTotals?: { key: string; decimals?: number }[];
 }
 
 @Component({
@@ -94,7 +93,7 @@ export interface ReportConfig {
           <p>{{ 'COMMON.NO_DATA' | translate }}</p>
         } @else {
           <div class="table-scroll">
-            <table class="data-table">
+            <table class="data-table report-table">
               <thead>
                 <tr>
                   @for (column of config?.columns ?? []; track column.key) {
@@ -111,6 +110,19 @@ export interface ReportConfig {
                   </tr>
                 }
               </tbody>
+              @if (config?.footerTotals?.length) {
+                <tfoot>
+                  <tr>
+                    @for (column of config?.columns ?? []; track column.key; let first = $first) {
+                      @if (first) {
+                        <th>{{ 'REPORTS.TOTAL' | translate }}</th>
+                      } @else {
+                        <td class="money">{{ footerTotal(column) }}</td>
+                      }
+                    }
+                  </tr>
+                </tfoot>
+              }
             </table>
           </div>
         }
@@ -140,6 +152,7 @@ export class ReportPageComponent implements OnInit {
   readonly page = signal(1);
   readonly pageSize = signal(25);
   readonly totalCount = signal(0);
+  readonly totals = signal<Record<string, number>>({});
 
   readonly startDate = this.fb.nonNullable.control('');
   readonly endDate = this.fb.nonNullable.control('');
@@ -158,7 +171,28 @@ export class ReportPageComponent implements OnInit {
   }
 
   exportFilters(): Record<string, unknown> {
-    return this.filters();
+    // The server picks localized names for the document it renders, so it needs to know
+    // which language the reader is looking at.
+    return { ...this.filters(), lang: this.language.currentLanguage() };
+  }
+
+  /** Blank unless the column is one the report foots. */
+  footerTotal(column: ReportColumn): string {
+    const footer = this.config?.footerTotals?.find((total) => total.key === column.key);
+    if (!footer) {
+      return '';
+    }
+
+    const value = this.totals()[column.key];
+    if (value === undefined) {
+      return '';
+    }
+
+    const decimals = footer.decimals ?? 2;
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(value);
   }
 
   applyFilters(): void {
@@ -232,6 +266,7 @@ export class ReportPageComponent implements OnInit {
       next: (data) => {
         this.rows.set(data.items ?? []);
         this.totalCount.set(data.totalCount ?? 0);
+        this.totals.set(data.totals ?? {});
         this.loading.set(false);
       },
       error: (err) => {
@@ -245,7 +280,6 @@ export class ReportPageComponent implements OnInit {
     const paging = { page: this.page(), pageSize: this.pageSize() };
     const start = this.startDate.value;
     const end = this.endDate.value;
-    const searchValue = this.search.value || undefined;
 
     switch (this.config?.endpoint) {
       case 'foreign-reserve':
@@ -259,16 +293,6 @@ export class ReportPageComponent implements OnInit {
             ...paging,
           }),
         );
-      case 'credit-movements':
-        return this.cast(this.api.getCreditMovements(start, end, { searchValue, ...paging }));
-      case 'debit-movements':
-        return this.cast(this.api.getDebitMovements(start, end, { searchValue, ...paging }));
-      case 'resources':
-        return this.cast(
-          this.api.getResourcesReport({ startDate: start || undefined, endDate: end || undefined, ...paging }),
-        );
-      case 'correspondent-balances':
-        return this.cast(this.api.getCorrespondentBalancesReport({ searchValue, ...paging }));
       default:
         return null;
     }
@@ -296,61 +320,24 @@ export const REPORT_CONFIGS = {
     ],
   },
   obligations: {
-    titleKey: 'NAV.OBLIGATIONS',
+    titleKey: 'REPORTS.CBOS_OBLIGATIONS',
     endpoint: 'obligations',
     dateRange: 'optional',
     statusFilter: true,
     columns: [
-      { key: 'clientName', label: 'OBLIGATIONS.CLIENT' },
-      { key: 'clientType', label: 'OBLIGATIONS.CLIENT_TYPE' },
-      { key: 'obligationType', label: 'OBLIGATIONS.OBLIGATION_TYPE' },
-      { key: 'currencySymbol', label: 'CURRENCIES.SHORT_NAME' },
-      { key: 'totalAmount', label: 'OBLIGATIONS.TOTAL', format: 'money' },
-      { key: 'paidAmount', label: 'OBLIGATIONS.PAID', format: 'money' },
+      {
+        key: 'clientName',
+        label: 'OBLIGATIONS.CLIENT',
+        format: 'localizedField',
+        enKey: 'clientName',
+        arKey: 'clientNameAr',
+      },
+      { key: 'currencySymbol', label: 'REPORTS.CCY' },
+      { key: 'totalAmount', label: 'REPORTS.TOTAL_AMOUNTS', format: 'money' },
+      { key: 'paidAmount', label: 'REPORTS.PAID_AMOUNTS', format: 'money' },
       { key: 'remainingAmount', label: 'OBLIGATIONS.REMAINING', format: 'money' },
-      { key: 'dueDate', label: 'OBLIGATIONS.DUE_DATE', format: 'date' },
-      { key: 'status', label: 'TRANSFERS.STATUS' },
+      { key: 'remainingAmountUsd', label: 'REPORTS.REMAINING_USD', format: 'money' },
     ],
-  },
-  creditMovements: {
-    titleKey: 'REPORTS.CREDIT_MOVEMENTS',
-    endpoint: 'credit-movements',
-    dateRange: 'required',
-    search: true,
-    columns: [
-      { key: 'groupName', label: 'RESOURCES.TYPE' },
-      { key: 'totalAmount', label: 'TRANSFERS.AMOUNT', format: 'money' },
-    ],
-  },
-  debitMovements: {
-    titleKey: 'REPORTS.DEBIT_MOVEMENTS',
-    endpoint: 'debit-movements',
-    dateRange: 'required',
-    search: true,
-    columns: [
-      { key: 'groupName', label: 'NAV.BENEFICIARIES' },
-      { key: 'totalAmount', label: 'TRANSFERS.AMOUNT', format: 'money' },
-    ],
-  },
-  resources: {
-    titleKey: 'REPORTS.RESOURCES_SUMMARY',
-    endpoint: 'resources',
-    dateRange: 'optional',
-    columns: [
-      { key: 'resourceTypeName', label: 'RESOURCES.TYPE' },
-      { key: 'totalAmount', label: 'TRANSFERS.AMOUNT', format: 'money' },
-    ],
-  },
-  correspondentBalances: {
-    titleKey: 'NAV.BALANCES',
-    endpoint: 'correspondent-balances',
-    dateRange: 'none',
-    search: true,
-    columns: [
-      { key: 'correspondentNameEn', label: 'NAV.CORRESPONDENTS' },
-      { key: 'currencySymbol', label: 'CURRENCIES.SHORT_NAME' },
-      { key: 'accountNumber', label: 'ACCOUNTS.NUMBER' },
-      { key: 'currentBalance', label: 'ACCOUNTS.BALANCE', format: 'money' },
-    ],
+    footerTotals: [{ key: 'remainingAmountUsd', decimals: 3 }],
   },
 } satisfies Record<string, ReportConfig>;

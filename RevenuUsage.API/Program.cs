@@ -15,6 +15,10 @@ using QuestPDF.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 QuestPDF.Settings.License = LicenseType.Community;
 
+// Obligation clients are named in Arabic. If the host is missing a font that covers the
+// script, a report should come out with some glyphs boxed rather than not at all.
+QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+
 var jwtConfig = builder.Configuration.GetSection("Jwt");
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

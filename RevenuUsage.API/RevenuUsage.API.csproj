@@ -16,6 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Referenced where the web app already keeps it rather than copied, so the logo
+         on an exported report cannot drift from the one on screen. -->
+    <Content Include="..\revenue-usage-ui\public\cbos-logo-blue.png"
+             Link="Exports\Assets\cbos-logo-blue.png"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\RevenuUsage.Application\RevenuUsage.Application.csproj" />
     <ProjectReference Include="..\RevenuUsage.Infrastructure\RevenuUsage.Infrastructure.csproj" />
   </ItemGroup>

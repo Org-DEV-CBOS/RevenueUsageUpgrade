@@ -7,9 +7,18 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    /*
+    Remaining amounts are converted to USD so obligations held in different currencies
+    can be totalled against each other. RateToUsd is exposed alongside the converted
+    figure so the caller can tell a missing rate from a zero and say so, rather than
+    quietly reporting a total that leaves obligations out.
+    */
+    DECLARE @asOf date = CAST(GETUTCDATE() AS date);
+
     SELECT
         o.ObligationId,
         COALESCE(b.BankNameEn, cm.CompanyNameEn) AS ClientName,
+        COALESCE(b.BankNameAr, cm.CompanyNameAr) AS ClientNameAr,
         ct.ClientTypeNameEn AS ClientType,
         ot.ObligationTypeNameEn AS ObligationType,
         c.CurrencyCode,
@@ -17,10 +26,15 @@ BEGIN
         o.TotalAmount,
         o.PaidAmount,
         o.TotalAmount - o.PaidAmount AS RemainingAmount,
+        r.RateToUsd,
+        CASE
+            WHEN r.RateToUsd IS NULL THEN NULL
+            ELSE (o.TotalAmount - o.PaidAmount) * r.RateToUsd
+        END AS RemainingAmountUsd,
         o.DueDate,
         CASE
             WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
-            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
+            WHEN o.DueDate < @asOf THEN 'Overdue'
             ELSE 'Open'
         END AS Status
     FROM dbo.Obligations o
@@ -29,13 +43,14 @@ BEGIN
     LEFT JOIN dbo.ObligationTypes ot ON ot.ObligationTypeId = o.ObligationTypeId
     LEFT JOIN dbo.banks b ON b.bankId = o.BankId
     LEFT JOIN dbo.companies cm ON cm.companyId = o.CompanyId
+    LEFT JOIN dbo.ufnUsdRates(@asOf) r ON r.CurrencyId = o.CurrencyId
     WHERE o.DeletedTime IS NULL
       AND (@StartDate IS NULL OR o.ObligationDate >= @StartDate)
       AND (@EndDate IS NULL OR o.ObligationDate <= @EndDate)
       AND (@ClientTypeId IS NULL OR o.ClientTypeId = @ClientTypeId)
       AND (@Status IS NULL OR @Status = CASE
             WHEN o.PaidAmount >= o.TotalAmount THEN 'Paid'
-            WHEN o.DueDate < CAST(GETUTCDATE() AS date) THEN 'Overdue'
+            WHEN o.DueDate < @asOf THEN 'Overdue'
             ELSE 'Open'
         END)
     ORDER BY o.DueDate;

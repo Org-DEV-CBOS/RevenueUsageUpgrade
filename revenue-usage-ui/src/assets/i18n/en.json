@@ -79,7 +79,8 @@
     "DEALING": "Dealing",
     "REPORTS": "Reports",
     "STATEMENTS": "Statements",
-    "BALANCES": "Balances",
+    "BALANCES": "Correspondent's Balances",
+    "TOTAL_BALANCES": "Correspondent's Total Balances",
     "FOREIGN_RESERVE": "Foreign Reserve",
     "COUNTRIES": "Countries",
     "BENEFICIARIES": "Beneficiaries",
@@ -267,10 +268,19 @@
     "NET_POSITION": "Net Position"
   },
   "REPORTS": {
-    "CREDIT_MOVEMENTS": "Credit Movements",
-    "DEBIT_MOVEMENTS": "Debit Movements",
-    "RESOURCES_SUMMARY": "Resources Summary",
-    "USAGES": "Usages"
+    "USAGES": "Usages",
+    "CBOS_OBLIGATIONS": "CBOS Obligations",
+    "CORRESPONDENT_NAME": "Correspondent Name",
+    "TOTAL": "Total",
+    "TOTAL_IN_USD": "Total In USD",
+    "EQUIVALENT_USD": "EQU.IN USD",
+    "PENDING_USD": "T.Pending in USD",
+    "NET_BALANCE": "Net balance",
+    "CCY": "Ccy",
+    "TOTAL_AMOUNTS": "Total Amounts",
+    "PAID_AMOUNTS": "Paid Amounts",
+    "REMAINING_USD": "Remaining in USD",
+    "UNCONVERTED_WARNING": "{{count}} currency/currencies hold a balance with no published USD rate and are excluded from the USD figures."
   },
   "DASHBOARD": {
     "TITLE": "Dashboard",

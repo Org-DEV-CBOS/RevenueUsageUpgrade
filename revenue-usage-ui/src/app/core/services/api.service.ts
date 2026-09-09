@@ -26,6 +26,7 @@ import {
   ClientType,
   Correspondent,
   CorrespondentAccount,
+  CorrespondentBalanceReport,
   Coverage,
   CreateTransferRequest,
   Currency,
@@ -36,7 +37,6 @@ import {
   CrossRate,
   ExchangeRateRow,
   FinalBankPosition,
-  MovementReportRow,
   Obligation,
   ObligationStatement,
   ObligationType,
@@ -625,24 +625,16 @@ export class ReportsApiService {
     return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/obligations`, { params: toHttpParams(params) });
   }
 
-  getCreditMovements(startDate: string, endDate: string, params?: { searchValue?: string } & PageQuery) {
-    return this.http.get<PagedResponse<MovementReportRow>>(`${this.baseUrl}/credit-movements`, {
-      params: toHttpParams({ startDate, endDate, ...params }),
+  /** A currency column per holding. */
+  getCorrespondentBalancesReport(params?: { asOfDate?: string; searchValue?: string }) {
+    return this.http.get<CorrespondentBalanceReport>(`${this.baseUrl}/correspondent-balances`, {
+      params: toHttpParams(params),
     });
   }
 
-  getDebitMovements(startDate: string, endDate: string, params?: { searchValue?: string } & PageQuery) {
-    return this.http.get<PagedResponse<MovementReportRow>>(`${this.baseUrl}/debit-movements`, {
-      params: toHttpParams({ startDate, endDate, ...params }),
-    });
-  }
-
-  getResourcesReport(params?: DateRangeQuery & PageQuery) {
-    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/resources`, { params: toHttpParams(params) });
-  }
-
-  getCorrespondentBalancesReport(params?: { searchValue?: string } & PageQuery) {
-    return this.http.get<PagedResponse<unknown>>(`${this.baseUrl}/correspondent-balances`, {
+  /** One row per correspondent, everything they hold converted to USD. */
+  getCorrespondentTotalBalancesReport(params?: { asOfDate?: string; searchValue?: string }) {
+    return this.http.get<CorrespondentBalanceReport>(`${this.baseUrl}/correspondent-total-balances`, {
       params: toHttpParams(params),
     });
   }

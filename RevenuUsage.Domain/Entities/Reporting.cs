@@ -30,7 +30,28 @@ public sealed class DashboardSummary
 }
 
 public sealed class ForeignReserveReportRow{public DateTime ReportDate{get;set;}public decimal CorrespondentBalancesUsd{get;set;}public decimal CashInHandUsd{get;set;}public decimal GoldValueUsd{get;set;}public decimal DepositsUsd{get;set;}public decimal ResourcesUsd{get;set;}public decimal UsagesUsd{get;set;}public decimal GrandTotalUsd{get;set;}}
-public sealed class ObligationReportRow{public Guid ObligationId{get;set;}public string ClientName{get;set;}=string.Empty;public string ClientType{get;set;}=string.Empty;public string? ObligationType{get;set;}public string CurrencyCode{get;set;}=string.Empty;public string? CurrencySymbol{get;set;}public decimal TotalAmount{get;set;}public decimal PaidAmount{get;set;}public decimal RemainingAmount{get;set;}public DateTime? DueDate{get;set;}public string Status{get;set;}=string.Empty;}
-public sealed class MovementReportRow{public string GroupName{get;set;}=string.Empty;public decimal TotalAmount{get;set;}}
-public sealed class ResourceSummaryReportRow{public string ResourceTypeName{get;set;}=string.Empty;public decimal TotalAmount{get;set;}}
-public sealed class CorrespondentBalanceReportRow{public string CorrespondentNameEn{get;set;}=string.Empty;public string CurrencyCode{get;set;}=string.Empty;public string? CurrencySymbol{get;set;}public string AccountNumber{get;set;}=string.Empty;public decimal CurrentBalance{get;set;}}
+public sealed class ObligationReportRow{public Guid ObligationId{get;set;}public string ClientName{get;set;}=string.Empty;public string? ClientNameAr{get;set;}public string ClientType{get;set;}=string.Empty;public string? ObligationType{get;set;}public string CurrencyCode{get;set;}=string.Empty;public string? CurrencySymbol{get;set;}public decimal TotalAmount{get;set;}public decimal PaidAmount{get;set;}public decimal RemainingAmount{get;set;}public decimal? RateToUsd{get;set;}public decimal? RemainingAmountUsd{get;set;}public DateTime? DueDate{get;set;}public string Status{get;set;}=string.Empty;}
+
+/// <summary>
+/// One correspondent's holding in one currency, with the rate that converts it to USD.
+/// A null <see cref="RateToUsd"/> means the currency has no published rate, so the
+/// holding cannot be counted towards a USD total.
+/// </summary>
+public sealed class CorrespondentCurrencyBalance
+{
+    public Guid CorrespondentId { get; set; }
+    public string CorrespondentNameEn { get; set; } = string.Empty;
+    public string? CorrespondentNameAr { get; set; }
+    public Guid CurrencyId { get; set; }
+    public string CurrencyCode { get; set; } = string.Empty;
+    public string? CurrencySymbol { get; set; }
+    public decimal Balance { get; set; }
+    public decimal? RateToUsd { get; set; }
+    public decimal? BalanceUsd { get; set; }
+}
+
+/// <summary>Transfers raised but not yet confirmed, which have not moved a balance yet.</summary>
+public sealed class PendingTransferTotal
+{
+    public decimal PendingUsd { get; set; }
+}

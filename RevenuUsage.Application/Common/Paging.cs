@@ -12,7 +12,8 @@ public static class Paging
         IEnumerable<T> source,
         int page,
         int pageSize,
-        int pageNumber = 0)
+        int pageNumber = 0,
+        Func<IReadOnlyList<T>, IReadOnlyDictionary<string, decimal>>? totals = null)
     {
         if (pageNumber > 0)
         {
@@ -25,7 +26,10 @@ public static class Paging
         var list = source as IReadOnlyList<T> ?? source.ToList();
         var totalCount = list.Count;
         var items = list.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-        return new PagedResponse<T>(items, page, pageSize, totalCount);
+
+        // Totals are taken from the full list, not the page, so footing a column does
+        // not change meaning as the reader moves through the report.
+        return new PagedResponse<T>(items, page, pageSize, totalCount, totals?.Invoke(list));
     }
 
     public static IReadOnlyList<T> Search<T>(IEnumerable<T> source, string? term, Func<T, object?[]> values)
