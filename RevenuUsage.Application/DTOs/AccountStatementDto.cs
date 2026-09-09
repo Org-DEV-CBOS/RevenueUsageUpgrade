@@ -3,6 +3,7 @@
     public sealed record AccountStatementDto(
     bool IsOpening,
     DateTime? EventDate,
+    DateTime? EventTime,
     string? EventType,
     decimal AmountIn,
     decimal AmountOut,

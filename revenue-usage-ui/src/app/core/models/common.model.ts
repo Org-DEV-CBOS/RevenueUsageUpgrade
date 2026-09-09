@@ -264,7 +264,10 @@ export interface ResourceListItem {
 export interface AccountStatementRow {
   /** The brought-forward row that opens the statement; a balance, not a movement. */
   isOpening: boolean;
+  /** The business date the movement is booked under. */
   eventDate?: string;
+  /** The moment the balance actually moved. Absent on rows predating the timestamps. */
+  eventTime?: string;
   eventType?: string;
   amountIn: number;
   amountOut: number;

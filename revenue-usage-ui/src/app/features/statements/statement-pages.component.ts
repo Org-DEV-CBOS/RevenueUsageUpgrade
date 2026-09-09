@@ -64,6 +64,7 @@ interface StatementDay {
             <table class="data-table">
               <thead>
                 <tr>
+                  <th>{{ 'STATEMENTS.TIME' | translate }}</th>
                   <th>{{ 'STATEMENTS.EVENT' | translate }}</th>
                   <th>{{ 'STATEMENTS.IN' | translate }}</th>
                   <th>{{ 'STATEMENTS.OUT' | translate }}</th>
@@ -74,17 +75,18 @@ interface StatementDay {
               <tbody>
                 @if (openingRow(); as opening) {
                   <tr class="statement-opening">
-                    <td colspan="3">{{ 'STATEMENTS.OPENING_BALANCE' | translate }}</td>
+                    <td colspan="4">{{ 'STATEMENTS.OPENING_BALANCE' | translate }}</td>
                     <td class="money">{{ opening.runningBalance | money }}</td>
                     <td></td>
                   </tr>
                 }
                 @for (day of days(); track day.date) {
                   <tr class="statement-day">
-                    <th colspan="5" scope="rowgroup">{{ day.date | date: 'fullDate' }}</th>
+                    <th colspan="6" scope="rowgroup">{{ day.date | date: 'fullDate' }}</th>
                   </tr>
                   @for (row of day.rows; track $index) {
                     <tr>
+                      <td class="statement-time">{{ row.eventTime | date: 'shortTime' }}</td>
                       <td>{{ row.eventType }}</td>
                       <td class="money">{{ row.amountIn ? (row.amountIn | money) : '' }}</td>
                       <td class="money">{{ row.amountOut ? (row.amountOut | money) : '' }}</td>
@@ -94,7 +96,7 @@ interface StatementDay {
                   }
                   @if (day.closed) {
                     <tr class="statement-closing">
-                      <td colspan="3">{{ 'STATEMENTS.CLOSING_BALANCE' | translate }}</td>
+                      <td colspan="4">{{ 'STATEMENTS.CLOSING_BALANCE' | translate }}</td>
                       <td class="money">{{ day.closingBalance | money }}</td>
                       <td></td>
                     </tr>

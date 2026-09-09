@@ -257,6 +257,7 @@
     "CURRENCY": "كشف عملة",
     "BANK_POSITION": "مركز البنك",
     "EVENT": "الحركة",
+    "TIME": "الوقت",
     "IN": "وارد",
     "OUT": "صادر",
     "RUNNING_BALANCE": "الرصيد الجاري",

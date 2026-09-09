@@ -251,6 +251,7 @@
     "CURRENCY": "Currency Statement",
     "BANK_POSITION": "Bank Position",
     "EVENT": "Movement",
+    "TIME": "Time",
     "IN": "In",
     "OUT": "Out",
     "RUNNING_BALANCE": "Running Balance",

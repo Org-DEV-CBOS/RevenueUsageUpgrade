@@ -409,6 +409,12 @@ textarea {
   color: var(--blue-bg);
 }
 
+.data-table td.statement-time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
 .data-table tr.statement-day th {
   padding-top: 1rem;
   text-align: start;
