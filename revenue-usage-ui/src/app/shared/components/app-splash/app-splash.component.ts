@@ -12,7 +12,7 @@ import { TranslatePipe } from '@ngx-translate/core';
   imports: [TranslatePipe],
   template: `
     <div class="app-splash" role="status" aria-live="polite">
-      <img class="app-splash-logo" src="/cbos-logo-white.png" alt="" />
+      <img class="app-splash-logo" src="cbos-logo-white.png" alt="" />
       <p class="app-splash-title">{{ 'APP.SUBTITLE' | translate }}</p>
       <span class="app-splash-spinner" aria-hidden="true"></span>
       <p class="app-splash-hint">{{ 'APP.STARTING' | translate }}</p>

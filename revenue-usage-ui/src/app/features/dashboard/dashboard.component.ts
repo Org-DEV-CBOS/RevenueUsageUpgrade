@@ -142,7 +142,7 @@ function pieSlicePath(startAngle: number, endAngle: number): string {
                     <span class="reserve-swatch" [style.background]="slice.color"></span>
                     <span>{{ currencyName(slice) }}</span>
                     <strong>{{ slice.value | money }}</strong>
-                    <em>{{ slice.percent | number: '1.0-1' }}% · {{ slice.degrees | number: '1.0-0' }}°</em>
+                    <em>{{ slice.percent | number: '1.0-1' }}% </em>
                   </div>
                   <div class="reserve-bar-track">
                     <span

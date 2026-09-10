@@ -188,7 +188,7 @@ public static class ReportExportBuilder
         });
     }
 
-    public static byte[] BuildCorrespondentBalanceExcel(CorrespondentBalanceReportDto report)
+    public static byte[] BuildCorrespondentBalanceExcel(CorrespondentBalanceReportDto report, bool includeTotalInUsd = true)
     {
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Balances");
@@ -213,11 +213,16 @@ public static class ReportExportBuilder
         ws.Row(r).Style.Font.Bold = true;
         r++;
 
-        ws.Cell(r, 1).Value = "Total In USD";
-        for (var i = 0; i < report.CurrencyTotalsUsd.Count; i++)
-            SetAmount(ws.Cell(r, i + 2), report.CurrencyTotalsUsd[i]);
-        ws.Row(r).Style.Font.Bold = true;
-        r += 2;
+        if (includeTotalInUsd)
+        {
+            ws.Cell(r, 1).Value = "Total In USD";
+            for (var i = 0; i < report.CurrencyTotalsUsd.Count; i++)
+                SetAmount(ws.Cell(r, i + 2), report.CurrencyTotalsUsd[i]);
+            ws.Row(r).Style.Font.Bold = true;
+            r++;
+        }
+
+        r += 1;
 
         ws.Cell(r, 1).Value = AsOfLabel(report.AsOfDate);
         r += 2;
@@ -243,7 +248,7 @@ public static class ReportExportBuilder
         return Save(workbook);
     }
 
-    public static byte[] BuildCorrespondentBalancePdf(CorrespondentBalanceReportDto report, string title)
+    public static byte[] BuildCorrespondentBalancePdf(CorrespondentBalanceReportDto report, string title, bool includeTotalInUsd = true)
     {
         return ReportBranding.Document(title, content =>
         {
@@ -274,9 +279,12 @@ public static class ReportExportBuilder
                     foreach (var total in report.CurrencyTotals)
                         Head(table, Amount(total, "N3"));
 
-                    Head(table, "Total In USD");
-                    foreach (var total in report.CurrencyTotalsUsd)
-                        Head(table, Amount(total, "N3"));
+                    if (includeTotalInUsd)
+                    {
+                        Head(table, "Total In USD");
+                        foreach (var total in report.CurrencyTotalsUsd)
+                            Head(table, Amount(total, "N3"));
+                    }
                 });
 
                 column.Item().PaddingTop(12).Width(240).Table(table =>

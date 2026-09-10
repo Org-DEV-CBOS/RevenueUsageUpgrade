@@ -13,7 +13,7 @@ import { UserMenuComponent } from '../../shared/components/user-menu/user-menu.c
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <img class="brand-logo" src="/cbos-logo-white.png" alt="CBOS" />
+          <img class="brand-logo" src="cbos-logo-white.png" alt="CBOS" />
           <div>
             <h1>{{ 'APP.TITLE' | translate }}</h1>
             <p>Admin</p>

@@ -133,8 +133,8 @@ public sealed class ReportsController : ControllerBase
         var report = await _mediator.Send(new GetCorrespondentBalanceReportQuery(asOfDate, searchValue, InUsd: true), ct);
 
         return IsPdf(format)
-            ? Pdf(ReportExportBuilder.BuildCorrespondentBalancePdf(report, BalancesTitle), "correspondent-total-balances")
-            : Excel(ReportExportBuilder.BuildCorrespondentBalanceExcel(report), "correspondent-total-balances");
+            ? Pdf(ReportExportBuilder.BuildCorrespondentBalancePdf(report, BalancesTitle, includeTotalInUsd: false), "correspondent-total-balances")
+            : Excel(ReportExportBuilder.BuildCorrespondentBalanceExcel(report, includeTotalInUsd: false), "correspondent-total-balances");
     }
 
     /// <summary>

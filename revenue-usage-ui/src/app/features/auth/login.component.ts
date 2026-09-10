@@ -12,7 +12,7 @@ import { LanguageToggleComponent } from '../../shared/components/language-toggle
       <app-language-toggle class="login-lang" />
       <div class="login-card">
         <div class="login-header">
-          <img class="login-logo" src="/cbos-logo-white.png" alt="CBOS" />
+          <img class="login-logo" src="cbos-logo-white.png" alt="CBOS" />
           <h1>{{ 'APP.SUBTITLE' | translate }}</h1>
         </div>
 

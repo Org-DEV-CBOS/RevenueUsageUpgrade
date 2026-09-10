@@ -81,12 +81,14 @@ import { bindLiveFilter } from '../../core/utils/live-filter.util';
                     <td class="money">{{ amount(total, 3) }}</td>
                   }
                 </tr>
-                <tr>
-                  <th>{{ 'REPORTS.TOTAL_IN_USD' | translate }}</th>
-                  @for (total of data.currencyTotalsUsd; track $index) {
-                    <td class="money">{{ amount(total, 3) }}</td>
-                  }
-                </tr>
+                @if (!usdOnly()) {
+                  <tr>
+                    <th>{{ 'REPORTS.TOTAL_IN_USD' | translate }}</th>
+                    @for (total of data.currencyTotalsUsd; track $index) {
+                      <td class="money">{{ amount(total, 3) }}</td>
+                    }
+                  </tr>
+                }
               </tfoot>
             </table>
           </div>

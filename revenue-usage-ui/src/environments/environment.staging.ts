@@ -2,7 +2,7 @@ import { appUrl } from './app-url';
 
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:7068/api',
+  apiUrl: 'https://dev-staging.cbos.gov.sd/RUTS-Api/api',
   bypassAuth: false,
   oidc: {
     issuer: 'https://dev-staging.cbos.gov.sd:5000/',
@@ -10,6 +10,6 @@ export const environment = {
     redirectUri: appUrl('callback'),
     postLogoutRedirectUri: appUrl('login'),
     scope: 'openid profile email roles ruts.api.scope offline_access organization',
-    requireHttps: false,
+    requireHttps: true,
   },
 };
