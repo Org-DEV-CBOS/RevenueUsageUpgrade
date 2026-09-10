@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -18,9 +18,7 @@
   <ItemGroup>
     <!-- Referenced where the web app already keeps it rather than copied, so the logo
          on an exported report cannot drift from the one on screen. -->
-    <Content Include="..\revenue-usage-ui\public\cbos-logo-blue.png"
-             Link="Exports\Assets\cbos-logo-blue.png"
-             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\revenue-usage-ui\public\cbos-logo-blue.png" Link="Exports\Assets\cbos-logo-blue.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
