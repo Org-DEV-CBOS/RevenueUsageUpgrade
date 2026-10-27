@@ -1,5 +1,12 @@
 import { Route, Routes } from '@angular/router';
-import { adminGuard, authGuard, guestGuard, homeRedirectGuard } from './core/auth/auth.guard';
+import {
+  adminGuard,
+  authGuard,
+  guestGuard,
+  homeRedirectGuard,
+  selectRoleGuard,
+  userAreaGuard,
+} from './core/auth/auth.guard';
 import { HomeRedirectComponent } from './features/auth/callback.component';
 import { AdminLayoutComponent } from './layouts/admin-layout/admin-layout.component';
 import { UserLayoutComponent } from './layouts/user-layout/user-layout.component';
@@ -86,9 +93,14 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/forbidden.component').then((m) => m.ForbiddenComponent),
   },
   {
+    path: 'select-role',
+    loadComponent: () => import('./features/auth/select-role.component').then((m) => m.SelectRoleComponent),
+    canActivate: [authGuard, selectRoleGuard],
+  },
+  {
     path: 'app',
     component: UserLayoutComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, userAreaGuard],
     children: [
       { path: 'dashboard', component: UserDashboardComponent },
       apiRoute('accounts', 'accounts'),

@@ -1,6 +1,8 @@
 import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../../../core/auth/auth.service';
+import { pathForRole } from '../../../core/auth/roles';
 
 @Component({
   selector: 'app-user-menu',
@@ -18,8 +20,8 @@ import { AuthService } from '../../../core/auth/auth.service';
         <span class="user-menu-avatar" aria-hidden="true">{{ initials() }}</span>
         <span class="user-menu-meta">
           <span class="user-menu-name">{{ auth.displayName() || '—' }}</span>
-          @if (auth.roleLabelKey()) {
-            <span class="user-menu-role">{{ auth.roleLabelKey() | translate }}</span>
+          @if (auth.activeRoleId(); as roleId) {
+            <span class="user-menu-role">{{ roleCaption(roleId) | translate }}</span>
           }
         </span>
         <span class="user-menu-caret" [class.open]="open()" aria-hidden="true">
@@ -40,11 +42,29 @@ import { AuthService } from '../../../core/auth/auth.service';
             <span class="user-menu-avatar compact" aria-hidden="true">{{ initials() }}</span>
             <div class="user-menu-account-copy">
               <strong>{{ auth.displayName() || '—' }}</strong>
-              @if (auth.roleLabelKey()) {
-                <span>{{ auth.roleLabelKey() | translate }}</span>
+              @if (auth.activeRoleId(); as roleId) {
+                <span>{{ roleCaption(roleId) | translate }}</span>
               }
             </div>
           </div>
+          @if (auth.hasMultipleRoles()) {
+            <div class="user-menu-divider" role="separator"></div>
+            <p class="user-menu-section-label">{{ 'AUTH.SWITCH_ROLE' | translate }}</p>
+            @for (role of auth.availableRoles(); track role) {
+              <button
+                type="button"
+                class="user-menu-item user-menu-role-item"
+                [class.active]="role === auth.activeRoleId()"
+                role="menuitem"
+                (click)="chooseRole(role)"
+              >
+                <span>{{ roleCaption(role) | translate }}</span>
+                @if (role === auth.activeRoleId()) {
+                  <span class="user-menu-role-check" aria-hidden="true">✓</span>
+                }
+              </button>
+            }
+          }
           <div class="user-menu-divider" role="separator"></div>
           <button type="button" class="user-menu-item user-menu-logout" role="menuitem" (click)="logout()">
             <span class="user-menu-logout-icon" aria-hidden="true">
@@ -83,8 +103,20 @@ import { AuthService } from '../../../core/auth/auth.service';
 })
 export class UserMenuComponent {
   readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly host = inject(ElementRef<HTMLElement>);
   readonly open = signal(false);
+
+  roleCaption(roleId: string): string {
+    return this.auth.labelKeyFor(roleId) || roleId;
+  }
+
+  chooseRole(roleId: string): void {
+    this.open.set(false);
+    if (roleId === this.auth.activeRoleId()) return;
+    this.auth.setActiveRole(roleId);
+    void this.router.navigateByUrl(pathForRole(roleId));
+  }
 
   initials(): string {
     const name = this.auth.displayName().trim();

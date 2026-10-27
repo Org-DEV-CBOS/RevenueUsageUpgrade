@@ -17,9 +17,9 @@ export class CallbackComponent implements OnInit {
     await this.auth.configure();
     if (this.auth.isLoggedIn()) {
       void this.router.navigateByUrl(this.auth.defaultPath());
-    } else {
-      void this.router.navigate(['/login']);
+      return;
     }
+    void this.router.navigate(['/login']);
   }
 }
 

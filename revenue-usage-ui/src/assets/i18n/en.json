@@ -62,7 +62,11 @@
     "FORBIDDEN_BODY": "You do not have permission to access this page.",
     "BACK_HOME": "Back to dashboard",
     "ROLE_ADMIN": "Admin",
-    "ROLE_USER": "User"
+    "ROLE_USER": "User",
+    "SELECT_ROLE": "Choose a role",
+    "SELECT_ROLE_HINT": "You have more than one role. Choose the one you want to continue with.",
+    "SWITCH_ROLE": "Switch role",
+    "CONTINUE_AS": "Open this workspace"
   },
   "NAV": {
     "DASHBOARD": "Dashboard",

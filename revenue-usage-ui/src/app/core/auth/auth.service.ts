@@ -3,7 +3,7 @@ import { OAuthService, AuthConfig, OAuthErrorEvent } from 'angular-oauth2-oidc';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { SYSTEM_USER } from '../constants/system-user';
-import { ROLE_ADMIN, roleLabelKey as toRoleLabelKey } from './roles';
+import { ROLE_ADMIN, ROLE_USER, pathForRole, roleLabelKey as toRoleLabelKey } from './roles';
 
 export interface RutsUserProfile {
   userId: string;
@@ -35,13 +35,13 @@ export class AuthService {
     if (!profile) return '';
     return profile.fullNameAr || profile.userName || profile.email;
   });
-  readonly roleLabelKey = computed(() =>
-    toRoleLabelKey(this._activeRoleId() ?? this._profile()?.roles[0] ?? null),
+  readonly availableRoles = computed(() => this._profile()?.roles ?? []);
+  readonly hasMultipleRoles = computed(() => this.availableRoles().length > 1);
+  readonly needsRoleSelection = computed(
+    () => this.hasMultipleRoles() && !this._activeRoleId(),
   );
-  readonly isAdmin = computed(() => {
-    const roles = this._profile()?.roles ?? [];
-    return this._activeRoleId() === ROLE_ADMIN || roles.includes(ROLE_ADMIN);
-  });
+  readonly roleLabelKey = computed(() => toRoleLabelKey(this._activeRoleId()));
+  readonly isAdmin = computed(() => this._activeRoleId() === ROLE_ADMIN);
 
   constructor(
     private oauthService: OAuthService,
@@ -75,8 +75,17 @@ export class AuthService {
   }
 
   setActiveRole(roleId: string): void {
-    this._activeRoleId.set(roleId);
-    sessionStorage.setItem('ruts_activeRoleId', roleId);
+    const profile = this._profile();
+    if (profile && !profile.roles.includes(roleId)) return;
+
+    this.persistActiveRole(roleId);
+    if (profile) {
+      this._profile.set({ ...profile, activeRoleId: roleId });
+    }
+  }
+
+  labelKeyFor(roleId: string | null | undefined): string {
+    return toRoleLabelKey(roleId);
   }
 
   getStoredActiveRoleId(): string | null {
@@ -84,7 +93,8 @@ export class AuthService {
   }
 
   defaultPath(): string {
-    return this.isAdmin() ? '/admin/dashboard' : '/app/dashboard';
+    if (this.needsRoleSelection()) return '/select-role';
+    return pathForRole(this._activeRoleId());
   }
 
   actor(): string {
@@ -135,17 +145,16 @@ export class AuthService {
   }
 
   private applyDevBypassProfile(): void {
-    if (!this._activeRoleId()) {
-      this._activeRoleId.set(ROLE_ADMIN);
-      sessionStorage.setItem('ruts_activeRoleId', ROLE_ADMIN);
-    }
+    const roles = [ROLE_ADMIN, ROLE_USER];
+    const nextRole = this.resolveActiveRole(roles);
+    this.persistActiveRole(nextRole);
     this._profile.set({
       userId: 'dev-bypass',
       userName: 'Dev Tester',
       fullNameAr: 'مستخدم تجريبي',
       email: 'dev-bypass@local.test',
-      roles: [ROLE_ADMIN],
-      activeRoleId: this._activeRoleId(),
+      roles,
+      activeRoleId: nextRole,
       organizationId: '',
       organizationName: '',
     });
@@ -180,14 +189,8 @@ export class AuthService {
       /* ignore malformed token */
     }
 
-    const storedRole = this._activeRoleId();
-    const preferred = roles.includes(ROLE_ADMIN) ? ROLE_ADMIN : roles[0];
-    const nextRole =
-      storedRole && roles.includes(storedRole) ? storedRole : preferred ?? null;
-    if (nextRole && nextRole !== storedRole) {
-      this._activeRoleId.set(nextRole);
-      sessionStorage.setItem('ruts_activeRoleId', nextRole);
-    }
+    const nextRole = this.resolveActiveRole(roles);
+    this.persistActiveRole(nextRole);
 
     this._profile.set({
       userId: String(claims['sub'] ?? ''),
@@ -195,10 +198,26 @@ export class AuthService {
       fullNameAr: String(claims['full_name_ar'] ?? claims['preferred_username'] ?? ''),
       email: String(claims['email'] ?? ''),
       roles,
-      activeRoleId: this._activeRoleId(),
+      activeRoleId: nextRole,
       organizationId: String(claims['org_id'] ?? ''),
       organizationName: String(claims['org_name'] ?? ''),
     });
+  }
+
+  private resolveActiveRole(roles: string[]): string | null {
+    const storedRole = this._activeRoleId();
+    if (storedRole && roles.includes(storedRole)) return storedRole;
+    if (roles.length === 1) return roles[0];
+    return null;
+  }
+
+  private persistActiveRole(roleId: string | null): void {
+    this._activeRoleId.set(roleId);
+    if (roleId) {
+      sessionStorage.setItem('ruts_activeRoleId', roleId);
+    } else {
+      sessionStorage.removeItem('ruts_activeRoleId');
+    }
   }
 
   private registerAuthEvents(): void {

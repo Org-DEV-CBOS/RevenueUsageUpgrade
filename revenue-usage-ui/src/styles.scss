@@ -339,6 +339,32 @@ html[dir='rtl'] .user-menu-logout-icon svg {
   background: #fff5f7;
 }
 
+.user-menu-section-label {
+  margin: 0;
+  padding: 0.25rem 0.7rem 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.user-menu-role-item {
+  color: var(--text-strong);
+  justify-content: space-between;
+}
+
+.user-menu-role-item.active {
+  background: #f4f8fc;
+}
+
+.user-menu-role-item:hover {
+  background: #f4f8fc;
+}
+
+.user-menu-role-check {
+  color: var(--blue-bg);
+  font-weight: 700;
+}
+
 .page-content {
   padding: 1.75rem 2rem 3rem;
 }
@@ -1451,6 +1477,78 @@ is meaningless for them.
 .login-card .sso-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.login-card.role-card {
+  min-height: auto;
+  padding-bottom: 2.25rem;
+}
+
+.login-card.role-card .login-hint {
+  margin-top: 0.85rem;
+}
+
+.role-choice-list {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 1.5rem;
+}
+
+.role-choice {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  padding: 0.95rem 1.1rem;
+  cursor: pointer;
+  text-align: start;
+}
+
+.role-choice:hover,
+.role-choice.active {
+  background: #fff;
+  color: var(--blue-bg);
+}
+
+.role-choice-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.role-choice-copy strong {
+  font-size: 1rem;
+}
+
+.role-choice-copy small {
+  opacity: 0.8;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.role-choice-arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+html[dir='rtl'] .role-choice-arrow {
+  transform: scaleX(-1);
+}
+
+.role-signout {
+  margin-top: 1.25rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.88);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .lang-toggle {

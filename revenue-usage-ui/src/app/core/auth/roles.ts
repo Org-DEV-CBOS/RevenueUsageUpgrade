@@ -10,3 +10,7 @@ export function roleLabelKey(roleId: string | null | undefined): string {
   if (!roleId) return '';
   return ROLE_LABEL_KEYS[roleId] ?? '';
 }
+
+export function pathForRole(roleId: string | null | undefined): string {
+  return roleId === ROLE_ADMIN ? '/admin/dashboard' : '/app/dashboard';
+}
